@@ -83,11 +83,11 @@ public class GridSystem : MonoBehaviour
 
     public Vector3 GridToWorld(Vector2Int gridPos)
     {
-        return new Vector3(gridPos.x, 0f, gridPos.y);
+        return new Vector3(gridPos.x, gridPos.y, 0f);
     }
 
     public Vector2Int WorldToGrid(Vector3 worldPos)
     {
-        return new Vector2Int(Mathf.RoundToInt(worldPos.x), Mathf.RoundToInt(worldPos.z));
+        return new Vector2Int(Mathf.RoundToInt(worldPos.x), Mathf.RoundToInt(worldPos.y));
     }
 }
