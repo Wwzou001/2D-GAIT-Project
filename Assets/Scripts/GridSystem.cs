@@ -11,7 +11,10 @@ public class GridSystem : MonoBehaviour
     public const int Height = 5;
 
     [SerializeField] private int coinCount = 3;
-    [SerializeField] private int obstacleCount = 3; // tweak as needed
+    [SerializeField] private int obstacleCount = 2; // tweak as needed
+
+    [SerializeField] private Vector2Int playerStart = new Vector2Int(0, 0);
+    [SerializeField] private Vector2Int npcStart = new Vector2Int(4, 4);
 
     private CellType[,] grid = new CellType[Width, Height];
 
@@ -27,11 +30,11 @@ public class GridSystem : MonoBehaviour
             for (int y = 0; y < Height; y++)
                 grid[x, y] = CellType.Empty;
 
-        PlaceRandomly(CellType.Coin, coinCount);
-        PlaceRandomly(CellType.Obstacle, obstacleCount);
+        PlaceRandomly(CellType.Coin, coinCount, isObstacle: false);
+        PlaceRandomly(CellType.Obstacle, obstacleCount, isObstacle: true);
     }
 
-    void PlaceRandomly(CellType type, int count)
+    void PlaceRandomly(CellType type, int count, bool isObstacle)
     {
         int placed = 0;
         int safetyLimit = 200; // avoid an infinite loop if count is too high for the grid
@@ -39,12 +42,29 @@ public class GridSystem : MonoBehaviour
         {
             int x = Random.Range(0, Width);
             int y = Random.Range(0, Height);
-            if (grid[x, y] == CellType.Empty)
+            Vector2Int pos = new Vector2Int(x, y);
+            if (grid[x, y] != CellType.Empty)
             {
-                grid[x, y] = type;
-                placed++;
+                continue;
             }
+
+            if (isObstacle && (IsAdjacentToStart(pos, playerStart) || IsAdjacentToStart(pos, npcStart)))
+                continue;
+
+            if (!isObstacle && (pos == playerStart) || (pos == npcStart) )
+                continue;
+
+            grid[x, y] = type;
+            placed++;
         }
+    }
+
+    bool IsAdjacentToStart(Vector2Int pos, Vector2Int start)
+    {
+        if (pos == start) return true;
+        int dx = Mathf.Abs(pos.x - start.x);
+        int dy = Mathf.Abs(pos.y - start.y);
+        return (dx + dy) == 1;
     }
 
     public bool IsInBounds(Vector2Int pos)
