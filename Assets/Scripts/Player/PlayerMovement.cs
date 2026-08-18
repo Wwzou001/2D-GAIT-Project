@@ -4,8 +4,8 @@ using UnityEngine.InputSystem;
 public class PlayerMovement : MonoBehaviour
 {
 
-    public float moveSpeed = 4f;
-    private Rigidbody2D rb;
+    
+    private GridMover gridMover;
     private Vector2 movementInput;
 
 
@@ -13,18 +13,51 @@ public class PlayerMovement : MonoBehaviour
     void Start()
     {
         
-        rb = GetComponent<Rigidbody2D>(); 
+        
     }
 
     // Update is called once per frame
     void Update()
     {
-        rb.linearVelocity = movementInput * moveSpeed;
+       
+    }
+    void Awake(){
+        gridMover = GetComponent<GridMover>();
     }
 
     public void Move(InputAction.CallbackContext context){
         
-        movementInput = context.ReadValue<Vector2>();
+        
+        if (!context.performed)
+        {
+            return;
+        }
+
+        Vector2 movementInput = context.ReadValue<Vector2>();
+
+        if (movementInput == Vector2.zero)
+        {
+            return;
+        }
+                   
+
+        
+        if (movementInput.y > 0)
+        {
+            gridMover.TryMove(Direction.Up);
+        }
+        else if (movementInput.y < 0)
+        {
+            gridMover.TryMove(Direction.Down);
+        }
+        else if (movementInput.x < 0)
+        {
+            gridMover.TryMove(Direction.Left);
+        }
+        else if (movementInput.x > 0)
+        {
+            gridMover.TryMove(Direction.Right);
+        }
     }
 
     
