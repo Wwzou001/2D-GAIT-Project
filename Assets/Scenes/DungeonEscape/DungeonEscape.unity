@@ -286,7 +286,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridSystem
   coinCount: 3
-  obstacleCount: 3
+  obstacleCount: 2
+  playerStart: {x: 0, y: 0}
+  npcStart: {x: 4, y: 4}
 --- !u!4 &568787190
 Transform:
   m_ObjectHideFlags: 0

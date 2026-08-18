@@ -28,6 +28,12 @@ public class GridMover : MonoBehaviour
         transform.position = GridSystem.Instance.GridToWorld(GridPosition);
 
         OnEnterCell(targetPos);
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.CheckGameState();
+        }
+
         return true;
     }
 
