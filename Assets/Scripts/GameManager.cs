@@ -13,6 +13,7 @@ public class GameManager : MonoBehaviour
     [Header("UI")]
     [SerializeField] private GameObject endGamePanel;
     [SerializeField] private TMP_Text resultText;
+    [SerializeField] private TMP_Text coinCounterText;
 
     private bool gameOver = false;
 
@@ -26,10 +27,18 @@ public class GameManager : MonoBehaviour
             endGamePanel.SetActive(false);
     }
 
+    private void Start()
+    {
+        UpdateCoinCounter();
+    }
+
     public void CheckGameState()
     {
         if (gameOver)
             return;
+
+        // Update coin counter after every successful move
+        UpdateCoinCounter();
 
         // LOSS CONDITION
         // Player and enemy occupy the same grid square.
@@ -47,6 +56,20 @@ public class GameManager : MonoBehaviour
             WinGame();
         }
     }
+
+    private void UpdateCoinCounter()
+    {
+        if (coinCounterText != null && GridSystem.Instance != null)
+        {
+            int remainingCoins = GridSystem.Instance.RemainingCoins();
+            int collectedCoins = 3 - remainingCoins;
+
+            coinCounterText.text = $"Coins: {collectedCoins} / 3";
+        }
+    }
+
+
+
 
     private void WinGame()
     {
