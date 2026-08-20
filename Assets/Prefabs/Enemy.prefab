@@ -106,6 +106,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridMover
   startPosition: {x: 4, y: 4}
+  canCollectCoins: 0
 --- !u!114 &7617188116188318591
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -119,7 +120,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MctsEnemyController
   enemyMover: {fileID: 5955687047802921697}
-  playerMover: {fileID: 0}
+  playerMover: {fileID: -3329728343462389075, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
   simulationsPerMove: 300
   rolloutDepth: 15
   moveInterval: 0.6

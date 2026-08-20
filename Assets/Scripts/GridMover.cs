@@ -8,6 +8,8 @@ public class GridMover : MonoBehaviour
 
     [SerializeField] private Vector2Int startPosition = Vector2Int.zero;
 
+    [SerializeField] private bool canCollectCoins = true;
+
     void Start()
     {
         GridPosition = startPosition;
@@ -45,7 +47,7 @@ public class GridMover : MonoBehaviour
 
     private void OnEnterCell(Vector2Int pos)
     {
-        if (GridSystem.Instance.IsCoin(pos))
+        if (canCollectCoins && GridSystem.Instance.IsCoin(pos))
         {
             GridSystem.Instance.CollectCoin(pos);
         }
