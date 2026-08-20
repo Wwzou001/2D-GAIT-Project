@@ -16,6 +16,12 @@ public class GridMover : MonoBehaviour
 
     public bool TryMove(Direction dir)
     {
+        // when game over, nobody should able to move
+        if (GameManager.Instance != null && GameManager.Instance.GameOver)
+        {
+            return false;
+        }
+
         Vector2Int targetPos = GridPosition + DirectionToOffset(dir);
 
         if (!GridSystem.Instance.IsInBounds(targetPos))
