@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 public enum CellType { Empty, Obstacle, Coin }
 
@@ -17,6 +18,8 @@ public class GridSystem : MonoBehaviour
     [SerializeField] private Vector2Int npcStart = new Vector2Int(4, 4);
 
     private CellType[,] grid = new CellType[Width, Height];
+
+    public event Action<Vector2Int> CoinCollected;
 
     void Awake()
     {
@@ -40,8 +43,8 @@ public class GridSystem : MonoBehaviour
         int safetyLimit = 200; // avoid an infinite loop if count is too high for the grid
         while (placed < count && safetyLimit-- > 0)
         {
-            int x = Random.Range(0, Width);
-            int y = Random.Range(0, Height);
+            int x = UnityEngine.Random.Range(0, Width);
+            int y = UnityEngine.Random.Range(0, Height);
             Vector2Int pos = new Vector2Int(x, y);
             if (grid[x, y] != CellType.Empty)
             {
@@ -85,7 +88,10 @@ public class GridSystem : MonoBehaviour
     public void CollectCoin(Vector2Int pos)
     {
         if (IsCoin(pos))
+        { 
             grid[pos.x, pos.y] = CellType.Empty;
+            CoinCollected?.Invoke(pos);
+        }
     }
 
     // All coins collected = win

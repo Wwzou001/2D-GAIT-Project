@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class GridVisulizer : MonoBehaviour
 {
@@ -14,6 +15,8 @@ public class GridVisulizer : MonoBehaviour
     [SerializeField] private int obstacleSortingOrder = 1;
     [SerializeField] private int coinSortingOrder = 1;
 
+    private readonly Dictionary<Vector2Int, GameObject> coinObjects = new Dictionary<Vector2Int, GameObject>();
+
     void Start()
     {
         if (GridSystem.Instance == null)
@@ -22,6 +25,25 @@ public class GridVisulizer : MonoBehaviour
             return;
         }
         BuildGridVisuals();
+
+        GridSystem.Instance.CoinCollected += HandleCoinCollected;
+    }
+
+    private void OnDestroy()
+    {
+        if (GridSystem.Instance != null)
+        {
+            GridSystem.Instance.CoinCollected -= HandleCoinCollected;
+        }
+    }
+
+    void HandleCoinCollected(Vector2Int pos)
+    {
+        if (coinObjects.TryGetValue(pos, out GameObject coinObj))
+        {
+            Destroy(coinObj);
+            coinObjects.Remove(pos);
+        }
     }
 
     void BuildGridVisuals()
@@ -43,18 +65,22 @@ public class GridVisulizer : MonoBehaviour
                 }
                 else if (GridSystem.Instance.IsCoin(cellPos))
                 {
-                    SpawnSprite(coinSprite, coinColor, worldPos, coinSortingOrder, $"Coin_{x}_{y}");
+                    GameObject coinObj = SpawnSprite(coinSprite, coinColor, worldPos, coinSortingOrder, $"Coin_{x}_{y}");
+                    if ( coinObj != null )
+                    {
+                        coinObjects[cellPos] = coinObj;
+                    }
                 }
             }
         }
     }
 
-    void SpawnSprite(Sprite sprite, Color color, Vector3 worldPos, int sortingOrder, string name)
+    GameObject SpawnSprite(Sprite sprite, Color color, Vector3 worldPos, int sortingOrder, string name)
     {
         if (sprite == null)
         {
             Debug.LogWarning($"GridVisualiser: no sprite assigned for {name}" + "Assign Floor/Obstacle/Coin sprites in the Inspector");
-            return;
+            return null;
         }
 
         GameObject go = new GameObject(name);
@@ -65,5 +91,7 @@ public class GridVisulizer : MonoBehaviour
         sr.sprite = sprite;
         sr.color = color;
         sr.sortingOrder = sortingOrder;
+
+        return go;
     }
 }
