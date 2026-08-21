@@ -1,7 +1,5 @@
 using UnityEngine;
 
-// Attach this to the enemy GameObject. On a timer, asks MctsAgent for the
-// best move and applies it through the existing GridMover.
 public class MctsEnemyController : MonoBehaviour
 {
     [SerializeField] private GridMover enemyMover;
