@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class MctsEnemyController : MonoBehaviour
 {
-    [SerializeField] private GridMover enemyMover;
-    [SerializeField] private GridMover playerMover;
+    [SerializeField] private MCTSGridMover enemyMover;
+    [SerializeField] private MCTSGridMover playerMover;
 
     [SerializeField] private int simulationsPerMove = 300;
     [SerializeField] private int rolloutDepth = 15;
@@ -16,16 +16,24 @@ public class MctsEnemyController : MonoBehaviour
     private void Awake()
     {
         if (enemyMover == null)
-            enemyMover = GetComponent<GridMover>();
+            enemyMover = GetComponent<MCTSGridMover>();
 
         agent = new MctsAgent(simulationsPerMove, rolloutDepth);
     }
 
     private void Update()
     {
-        if (GameManager.Instance != null && GameManager.Instance.GameOver)
+        if (MCTSGameManager.Instance != null && MCTSGameManager.Instance.GameOver)
             return;
 
+        // Not enemy turn yet, wait
+        if (MCTSGameManager.Instance != null && MCTSGameManager.Instance.IsPlayerTurn)
+        {
+            timer = 0f;
+            return;
+        }
+
+        // Enemy turn
         timer += Time.deltaTime;
         if (timer < moveInterval) return;
         timer = 0f;
@@ -35,6 +43,11 @@ public class MctsEnemyController : MonoBehaviour
         if (logDecisions)
             Debug.Log(log);
 
-        enemyMover.TryMove(move);
+        bool moved = enemyMover.TryMove(move);
+
+        if (moved && MCTSGameManager.Instance != null)
+        {
+            MCTSGameManager.Instance.EndEnemyTurn();
+        }
     }
 }
