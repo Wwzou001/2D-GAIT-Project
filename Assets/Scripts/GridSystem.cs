@@ -8,8 +8,11 @@ public class GridSystem : MonoBehaviour
 {
     public static GridSystem Instance { get; private set; }
 
-    public const int Width = 5;
-    public const int Height = 5;
+    [SerializeField] private int width = 5;
+    [SerializeField] private int height = 5;
+
+    public int Width => width;
+    public int Height => height;
 
     [SerializeField] private int coinCount = 3;
     [SerializeField] private int obstacleCount = 2; // tweak as needed
@@ -17,13 +20,14 @@ public class GridSystem : MonoBehaviour
     [SerializeField] private Vector2Int playerStart = new Vector2Int(0, 0);
     [SerializeField] private Vector2Int npcStart = new Vector2Int(4, 4);
 
-    private CellType[,] grid = new CellType[Width, Height];
+    private CellType[,] grid;
 
     public event Action<Vector2Int> CoinCollected;
 
     void Awake()
     {
         Instance = this;
+        grid = new CellType[width, height];
         InitialiseGrid();
     }
 
@@ -43,8 +47,8 @@ public class GridSystem : MonoBehaviour
         int safetyLimit = 200; // avoid an infinite loop if count is too high for the grid
         while (placed < count && safetyLimit-- > 0)
         {
-            int x = UnityEngine.Random.Range(0, Width);
-            int y = UnityEngine.Random.Range(0, Height);
+            int x = UnityEngine.Random.Range(0, width);
+            int y = UnityEngine.Random.Range(0, height);
             Vector2Int pos = new Vector2Int(x, y);
             if (grid[x, y] != CellType.Empty)
             {
@@ -72,7 +76,7 @@ public class GridSystem : MonoBehaviour
 
     public bool IsInBounds(Vector2Int pos)
     {
-        return pos.x >= 0 && pos.x < Width && pos.y >= 0 && pos.y < Height;
+        return pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height;
     }
 
     public bool IsObstacle(Vector2Int pos)
@@ -103,6 +107,9 @@ public class GridSystem : MonoBehaviour
                 if (grid[x, y] == CellType.Coin) count++;
         return count;
     }
+
+    // How many coins this grid was configured to place - useful for UI
+    public int TotalCoins => coinCount;
 
     // Coordinate system: grid <-> world space 
     // Assumes 1 Unity unit per cell, grid's (0,0) sits at the world origin.

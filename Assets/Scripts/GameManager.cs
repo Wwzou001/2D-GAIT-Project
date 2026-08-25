@@ -61,10 +61,11 @@ public class GameManager : MonoBehaviour
     {
         if (coinCounterText != null && GridSystem.Instance != null)
         {
+            int totalCoins = GridSystem.Instance.TotalCoins;
             int remainingCoins = GridSystem.Instance.RemainingCoins();
-            int collectedCoins = 3 - remainingCoins;
+            int collectedCoins = totalCoins - remainingCoins;
 
-            coinCounterText.text = $"Coins: {collectedCoins} / 3";
+            coinCounterText.text = $"Coins: {collectedCoins} / {totalCoins}";
         }
     }
 

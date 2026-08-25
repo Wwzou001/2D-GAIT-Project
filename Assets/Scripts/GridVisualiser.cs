@@ -48,9 +48,9 @@ public class GridVisulizer : MonoBehaviour
 
     void BuildGridVisuals()
     {
-        for (int x = 0; x < GridSystem.Width; x++)
+        for (int x = 0; x < GridSystem.Instance.Width; x++)
         {
-            for (int y = 0; y < GridSystem.Height; y++)
+            for (int y = 0; y < GridSystem.Instance.Height; y++)
             {
                 Vector2Int cellPos = new Vector2Int(x, y);
                 Vector3 worldPos = GridSystem.Instance.GridToWorld(cellPos);
