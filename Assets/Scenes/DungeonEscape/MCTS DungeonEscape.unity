@@ -861,9 +861,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72f0229c14d347248a754c2b59349e82, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridVisulizer
-  floorSprite: {fileID: 7482667652216324306, guid: 6883547bc0d73a84abb910811bca6d76, type: 3}
-  obstacleSprite: {fileID: 7482667652216324306, guid: 38ef826d89e702e46a45db0cdc24e7a2, type: 3}
-  coinSprite: {fileID: -2413806693520163455, guid: bfea75c69a9444b4e93abde3729290f4, type: 3}
+  floorSprite: {fileID: -5000103570061886301, guid: d64b8b5ae0ae910428f549a513d55414, type: 3}
+  obstacleSprite: {fileID: 6529839130836981542, guid: 231b1e4d07883d94982bf1ec2271eb8c, type: 3}
+  coinSprite: {fileID: 6522468604666715935, guid: 6e286d7b467f4fc4dbef94e4c3140f8e, type: 3}
   floorColor: {r: 0.85, g: 0.85, b: 0.85, a: 1}
   obstacleColor: {r: 0.35, g: 0.35, b: 0.35, a: 1}
   coinColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
@@ -1398,8 +1398,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 2
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -2413806693520163455, guid: 6c30ec27db83a024ca17e8bd9f085dbc, type: 3}
-  m_Color: {r: 1, g: 0, b: 0, a: 1}
+  m_Sprite: {fileID: 1426666553488855073, guid: cfddb5fb2999bb24991ad4235777d43f, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -1583,8 +1583,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 2
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
-  m_Color: {r: 0.14404252, g: 0.11534355, b: 0.3018868, a: 1}
+  m_Sprite: {fileID: -4409446715219994729, guid: ac95db20442d29f4fb79be152ae0fa01, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
