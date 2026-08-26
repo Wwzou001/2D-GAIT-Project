@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 4927348583649927277}
   - component: {fileID: 5796295691309614351}
   - component: {fileID: 5955687047802921697}
-  - component: {fileID: 7617188116188318591}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Untagged
@@ -107,21 +106,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GridMover
   startPosition: {x: 4, y: 4}
   canCollectCoins: 0
---- !u!114 &7617188116188318591
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3137018683943249340}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3a7b6498934d14afda054f6d76f254ea, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MctsEnemyController
-  enemyMover: {fileID: 5955687047802921697}
-  playerMover: {fileID: -3329728343462389075, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
-  simulationsPerMove: 300
-  rolloutDepth: 15
-  moveInterval: 0.6
-  logDecisions: 1

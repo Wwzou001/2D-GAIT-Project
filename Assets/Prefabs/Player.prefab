@@ -15,7 +15,6 @@ GameObject:
   - component: {fileID: 8478606784483288840}
   - component: {fileID: 4565427594027659216}
   - component: {fileID: -3329728343462389075}
-  - component: {fileID: 1643263923579888003}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -280,15 +279,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GridMover
   startPosition: {x: 0, y: 0}
   canCollectCoins: 1
---- !u!114 &1643263923579888003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6603238842634290237}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cd5dbd1c8c583364daa7c9ad927ee183, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MCTSGridMover
