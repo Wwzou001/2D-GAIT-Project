@@ -931,10 +931,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GridSystem
   width: 10
   height: 10
-  coinCount: 3
-  obstacleCount: 2
+  coinCount: 5
+  obstacleCount: 8
   playerStart: {x: 0, y: 0}
-  npcStart: {x: 4, y: 4}
+  npcStart: {x: 9, y: 9}
 --- !u!4 &568787190
 Transform:
   m_ObjectHideFlags: 0
