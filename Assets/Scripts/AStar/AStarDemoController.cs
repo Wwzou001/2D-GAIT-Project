@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.InputSystem;
 
 /// Demo controller for the Sprint 2 A* skeleton.
 /// Attach to a GameObject that already has GridMover.
@@ -27,7 +27,9 @@ public class AStarDemoController : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.P) && !followingPath)
+        if (Keyboard.current != null &&
+            Keyboard.current.pKey.wasPressedThisFrame &&
+            !followingPath)
         {
             CalculateAndFollowPath();
         }
