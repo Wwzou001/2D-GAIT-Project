@@ -3,27 +3,26 @@ using UnityEngine.InputSystem;
 using SteeringBehaviours;
 
 // TEST-ONLY script for trying out Seek/Arrive/Flee in isolation.
-[RequireComponent(typeof(Rigidbody2D))]
 public class SteeringTestController : MonoBehaviour
 {
     public enum BehaviourType { Seek, Arrive, Flee }
 
-    [Header("Behaviour")]
-    [SerializeField] private BehaviourType behaviour = BehaviourType.Seek;
+    public BehaviourType behaviour = BehaviourType.Seek;
 
-    [Header("Movement Settings")]
-    [SerializeField] private float maxSpeed = 5f;
-    [SerializeField] private float maxAccel = 10f;
-    [SerializeField] private float accelTime = 0.25f;
-    [SerializeField] private float arriveSlowRadius = 2f;
+    public float maxSpeed = 5f;
+    public float maxAccel = 10f;
+    public float accelTime = 0.25f;
+    public float arriveSlowRadius = 2f;
 
     private Rigidbody2D rb;
     private Vector2 targetPos;
 
+    private AvoidanceSettings avoidance = new AvoidanceSettings { Enabled = false };
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        targetPos = transform.position;
+        targetPos = transform.position; //nothing moves until clicked
     }
 
     private void Update()
@@ -43,15 +42,15 @@ public class SteeringTestController : MonoBehaviour
         switch (behaviour)
         {
             case BehaviourType.Seek:
-                desiredVelocity = Steering.Seek(currentPos, targetPos, maxSpeed);
+                desiredVelocity = Steering.Seek(currentPos, targetPos, maxSpeed, avoidance);
                 break;
 
             case BehaviourType.Arrive:
-                desiredVelocity = Steering.Arrive(currentPos, targetPos, arriveSlowRadius, maxSpeed);
+                desiredVelocity = Steering.Arrive(currentPos, targetPos, arriveSlowRadius, maxSpeed, avoidance);
                 break;
 
             case BehaviourType.Flee:
-                desiredVelocity = Steering.Flee(currentPos, targetPos, maxSpeed);
+                desiredVelocity = Steering.Flee(currentPos, targetPos, maxSpeed, avoidance);
                 break;
 
             default:
