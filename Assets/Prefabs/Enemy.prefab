@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4927348583649927277}
   - component: {fileID: 5796295691309614351}
   - component: {fileID: 5955687047802921697}
+  - component: {fileID: 5001109238573987456}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Untagged
@@ -106,3 +107,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GridMover
   startPosition: {x: 4, y: 4}
   canCollectCoins: 0
+--- !u!114 &5001109238573987456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3137018683943249340}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 654a080b1d250c149beabd7d0d93491d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FSMEnemyController
+  player: {fileID: 0}
+  chaseDistance: 3
+  moveInterval: 0.5
+  patrolPointA: {x: 4, y: 4}
+  patrolPointB: {x: 0, y: 4}
+  showDebugLogs: 1
