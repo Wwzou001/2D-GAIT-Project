@@ -10,14 +10,9 @@ public class MctsEnemyController : MonoBehaviour
     [SerializeField] private float moveInterval = 0.6f;
     [SerializeField] private bool logDecisions = true;
 
-    [SerializeField] private bool stepMode = false;
-    private bool advanceRequested = false;
-
-    public bool StepMode => stepMode;
-
-    public bool WaitingForStep => stepMode && IsEnemyTurn() && !advanceRequested;
-
     public int SimulationsPerMove => simulationsPerMove;
+
+    public double LastDecisionTimeMs => agent != null ? agent.LastDecisionTimeMs : 0;
 
     private MctsAgent agent;
     private float timer;
@@ -30,31 +25,10 @@ public class MctsEnemyController : MonoBehaviour
         agent = new MctsAgent(simulationsPerMove, rolloutDepth);
     }
 
-    private bool IsEnemyTurn()
-    {
-        return MCTSGameManager.Instance == null || !MCTSGameManager.Instance.IsPlayerTurn;
-    }
-
-    public void RequestNextStep()
-    {
-        if (stepMode)
-        {
-            advanceRequested = true;
-        }
-    }
-
-    // A UI toggle switch between auto and step by step at runtime
-    public void SetStepMode(bool enable)
-    {
-        stepMode = enable;
-        advanceRequested = false;
-        timer = 0f;
-    }
-
     // Set slider's min/max
     public void SetSimulationsPerMove(float value)
     {
-        simulationsPerMove = Mathf.Max(1, Mathf.RoundToInt(value));
+        simulationsPerMove = Mathf.Max(0, Mathf.RoundToInt(value));
         agent = new MctsAgent(simulationsPerMove, rolloutDepth);
     }
 
@@ -67,23 +41,13 @@ public class MctsEnemyController : MonoBehaviour
         if (MCTSGameManager.Instance != null && MCTSGameManager.Instance.IsPlayerTurn)
         {
             timer = 0f;
-            advanceRequested = false;
             return;
         }
+       
+        timer += Time.deltaTime;
+        if (timer < moveInterval) return;
+        timer = 0f;
 
-        if (stepMode)
-        {
-            // Wait for a 'next step' click before doing anything
-            if (!advanceRequested) return;
-            advanceRequested = false;
-        }
-        else
-        {
-            // Automatic mode: Enemy turn
-            timer += Time.deltaTime;
-            if (timer < moveInterval) return;
-            timer = 0f;
-        }
         Direction move = agent.ChooseMove(enemyMover.GridPosition, playerMover.GridPosition, out string log);
 
         if (logDecisions)
