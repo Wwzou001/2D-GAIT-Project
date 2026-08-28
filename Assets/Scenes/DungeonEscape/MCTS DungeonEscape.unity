@@ -364,7 +364,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 30, y: -90}
+  m_AnchoredPosition: {x: 30, y: -120}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &190543251
@@ -646,7 +646,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 220, y: -95}
+  m_AnchoredPosition: {x: 220, y: -130}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &455627866
@@ -775,6 +775,7 @@ GameObject:
   - component: {fileID: 519420031}
   - component: {fileID: 519420029}
   - component: {fileID: 519420030}
+  - component: {fileID: 519420033}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -900,6 +901,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &519420033
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b7cda675020e8248a1605878d5590c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GridCameraFit
+  padding: 4
 --- !u!1 &568787188
 GameObject:
   m_ObjectHideFlags: 0
@@ -933,8 +947,6 @@ MonoBehaviour:
   height: 10
   coinCount: 5
   obstacleCount: 8
-  playerStart: {x: 0, y: 0}
-  npcStart: {x: 9, y: 9}
 --- !u!4 &568787190
 Transform:
   m_ObjectHideFlags: 0
@@ -1121,7 +1133,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd5dbd1c8c583364daa7c9ad927ee183, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MCTSGridMover
-  startPosition: {x: 9, y: 9}
+  startCorner: 1
   canCollectCoins: 0
   showShadow: 1
   shadowSprite: {fileID: -4409446715219994729, guid: ac95db20442d29f4fb79be152ae0fa01, type: 3}
@@ -1499,7 +1511,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 200, y: -120}
+  m_AnchoredPosition: {x: 200, y: -155}
   m_SizeDelta: {x: 160, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1520634103
@@ -2262,7 +2274,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd5dbd1c8c583364daa7c9ad927ee183, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MCTSGridMover
-  startPosition: {x: 0, y: 0}
+  startCorner: 0
   canCollectCoins: 1
   showShadow: 1
   shadowSprite: {fileID: 1426666553488855073, guid: cfddb5fb2999bb24991ad4235777d43f, type: 3}
@@ -2479,7 +2491,7 @@ MonoBehaviour:
   rolloutDepth: 15
   moveInterval: 0.6
   logDecisions: 1
-  stepMode: 1
+  stepMode: 0
 --- !u!114 &8478606782727542034
 MonoBehaviour:
   m_ObjectHideFlags: 0

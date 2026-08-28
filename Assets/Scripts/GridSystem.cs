@@ -17,8 +17,9 @@ public class GridSystem : MonoBehaviour
     [SerializeField] private int coinCount = 3;
     [SerializeField] private int obstacleCount = 2; // tweak as needed
 
-    [SerializeField] private Vector2Int playerStart = new Vector2Int(0, 0);
-    [SerializeField] private Vector2Int npcStart = new Vector2Int(4, 4);
+    // Confirm character position rule, player bottom left, enemy top right
+    public Vector2Int playerStart => new Vector2Int(0, 0);
+    public Vector2Int npcStart => new Vector2Int(width - 1, height - 1);
 
     private CellType[,] grid;
 

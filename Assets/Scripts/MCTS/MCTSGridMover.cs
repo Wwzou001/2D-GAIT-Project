@@ -4,7 +4,8 @@ public class MCTSGridMover : MonoBehaviour
 {
     public Vector2Int GridPosition { get; private set; }
 
-    [SerializeField] private Vector2Int startPosition = Vector2Int.zero;
+    public enum StartCorner { playerStart, npcStart}
+    [SerializeField] private StartCorner startCorner = StartCorner.playerStart;
 
     [SerializeField] private bool canCollectCoins = true;
 
@@ -18,7 +19,7 @@ public class MCTSGridMover : MonoBehaviour
 
     void Start()
     {
-        GridPosition = startPosition;
+        GridPosition = startCorner == StartCorner.playerStart ? GridSystem.Instance.playerStart : GridSystem.Instance.npcStart;
         transform.position = GridSystem.Instance.GridToWorld(GridPosition);
 
         if (showShadow)
