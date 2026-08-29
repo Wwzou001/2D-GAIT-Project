@@ -815,6 +815,7 @@ MonoBehaviour:
   height: 10
   coinCount: 5
   obstacleCount: 8
+  fountainCount: 4
 --- !u!4 &568787190
 Transform:
   m_ObjectHideFlags: 0
@@ -1003,6 +1004,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MCTSGridMover
   startCorner: 1
   canCollectCoins: 0
+  canUseFountainBuff: 0
+  buffDurationTurns: 3
   showShadow: 1
   shadowSprite: {fileID: -4409446715219994729, guid: ac95db20442d29f4fb79be152ae0fa01, type: 3}
   shadowColor: {r: 1, g: 1, b: 1, a: 0.35}
@@ -1583,12 +1586,15 @@ MonoBehaviour:
   floorSprite: {fileID: -5000103570061886301, guid: d64b8b5ae0ae910428f549a513d55414, type: 3}
   obstacleSprite: {fileID: 6529839130836981542, guid: 231b1e4d07883d94982bf1ec2271eb8c, type: 3}
   coinSprite: {fileID: 6522468604666715935, guid: 6e286d7b467f4fc4dbef94e4c3140f8e, type: 3}
+  fountainSprite: {fileID: -9101949836599852325, guid: b34e1c6e35ab749aaab60c8a3c02b164, type: 3}
   floorColor: {r: 0.85, g: 0.85, b: 0.85, a: 1}
   obstacleColor: {r: 0.35, g: 0.35, b: 0.35, a: 1}
   coinColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  fountainColor: {r: 0.3, g: 0.6, b: 1, a: 1}
   floorSortingOrder: 0
   obstacleSortingOrder: 1
   coinSortingOrder: 1
+  fountainSortingOrder: 1
 --- !u!1 &1887348294
 GameObject:
   m_ObjectHideFlags: 0
@@ -2144,6 +2150,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MCTSGridMover
   startCorner: 0
   canCollectCoins: 1
+  canUseFountainBuff: 1
+  buffDurationTurns: 3
   showShadow: 1
   shadowSprite: {fileID: 1426666553488855073, guid: cfddb5fb2999bb24991ad4235777d43f, type: 3}
   shadowColor: {r: 1, g: 1, b: 1, a: 0.35}

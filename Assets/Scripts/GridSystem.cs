@@ -1,7 +1,8 @@
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
-public enum CellType { Empty, Obstacle, Coin }
+public enum CellType { Empty, Obstacle, Coin, Fountain }
 
 
 public class GridSystem : MonoBehaviour
@@ -17,11 +18,14 @@ public class GridSystem : MonoBehaviour
     [SerializeField] private int coinCount = 3;
     [SerializeField] private int obstacleCount = 2; // tweak as needed
 
+    [SerializeField] private int fountainCount = 0; // default off, only MCTS need to change value
+
     // Confirm character position rule, player bottom left, enemy top right
     public Vector2Int playerStart => new Vector2Int(0, 0);
     public Vector2Int npcStart => new Vector2Int(width - 1, height - 1);
 
     private CellType[,] grid;
+    private List<Vector2Int> fountainPositions = new List<Vector2Int>();
 
     public event Action<Vector2Int> CoinCollected;
 
@@ -38,8 +42,11 @@ public class GridSystem : MonoBehaviour
             for (int y = 0; y < Height; y++)
                 grid[x, y] = CellType.Empty;
 
+        fountainPositions.Clear();
+
         PlaceRandomly(CellType.Coin, coinCount, isObstacle: false);
         PlaceRandomly(CellType.Obstacle, obstacleCount, isObstacle: true);
+        PlaceFountains(fountainCount);
     }
 
     void PlaceRandomly(CellType type, int count, bool isObstacle)
@@ -67,6 +74,42 @@ public class GridSystem : MonoBehaviour
         }
     }
 
+    void PlaceFountains(int count)
+    {
+        int placed = 0;
+        int safetyLimit = 300;
+        int minSpacing = Mathf.Max(width, height) / 2;
+
+        while (placed < count && safetyLimit -- > 0)
+        {
+            int x = UnityEngine.Random.Range(0, width);
+            int y = UnityEngine.Random.Range(0, height);
+            Vector2Int pos = new Vector2Int(x, y);
+
+            if (grid[x, y] != CellType.Empty) continue;
+
+            if (pos == playerStart || pos == npcStart) continue;
+
+            bool tooCloseToAnotherFountain = false;
+            foreach (Vector2Int existing in fountainPositions)
+            {
+                int dx = Mathf.Abs(pos.x - existing.x);
+                int dy = Mathf.Abs(pos.y - existing.y);
+                int manhattanDistance = dx + dy;
+                if (manhattanDistance < minSpacing)
+                {
+                    tooCloseToAnotherFountain = true;
+                    break;
+                }
+            }
+            if (tooCloseToAnotherFountain) continue;
+
+            grid[x, y] = CellType.Fountain;
+            fountainPositions.Add(pos);
+            placed++;
+        }
+    }
+
     bool IsAdjacentToStart(Vector2Int pos, Vector2Int start)
     {
         if (pos == start) return true;
@@ -88,6 +131,26 @@ public class GridSystem : MonoBehaviour
     public bool IsCoin(Vector2Int pos)
     {
         return IsInBounds(pos) && grid[pos.x, pos.y] == CellType.Coin;
+    }
+
+    public bool IsFountain(Vector2Int pos)
+    {
+        return IsInBounds(pos) && grid[pos.x, pos.y] == CellType.Fountain;
+    }
+
+    // Check if any fountain within surround 8 cells
+    public bool IsNearFountain(Vector2Int pos)
+    {
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                if (dx == 0 && dy == 0) continue; // skip cell itself
+                Vector2Int neighbour = new Vector2Int(pos.x + dx, pos.y + dy);
+                if (IsFountain(neighbour)) return true;
+            }
+        }
+        return false;
     }
 
     public void CollectCoin(Vector2Int pos)

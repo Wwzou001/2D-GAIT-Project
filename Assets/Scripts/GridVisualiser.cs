@@ -7,13 +7,17 @@ public class GridVisulizer : MonoBehaviour
     [SerializeField] private Sprite obstacleSprite;
     [SerializeField] private Sprite coinSprite;
 
+    [SerializeField] private Sprite fountainSprite;
+
     [SerializeField] private Color floorColor = new Color(0.85f, 0.85f, 0.85f);
     [SerializeField] private Color obstacleColor = new Color(0.35f, 0.35f, 0.35f);
     [SerializeField] private Color coinColor = Color.yellow;
+    [SerializeField] private Color fountainColor = new Color(0.3f, 0.6f, 1f);
 
     [SerializeField] private int floorSortingOrder = 0;
     [SerializeField] private int obstacleSortingOrder = 1;
     [SerializeField] private int coinSortingOrder = 1;
+    [SerializeField] private int fountainSortingOrder = 1;
 
     private readonly Dictionary<Vector2Int, GameObject> coinObjects = new Dictionary<Vector2Int, GameObject>();
 
@@ -58,7 +62,7 @@ public class GridVisulizer : MonoBehaviour
                 // every cell get a tile first
                 SpawnSprite(floorSprite, floorColor, worldPos, floorSortingOrder, $"Floor_{x}_{y}");
 
-                // layer an obstacle or coin on top
+                // layer an obstacle, coin or fountain on top
                 if (GridSystem.Instance.IsObstacle(cellPos))
                 {
                     SpawnSprite(obstacleSprite, obstacleColor, worldPos, obstacleSortingOrder, $"Obstacle_{x}_{y}");
@@ -70,6 +74,12 @@ public class GridVisulizer : MonoBehaviour
                     {
                         coinObjects[cellPos] = coinObj;
                     }
+                }
+                else if (GridSystem.Instance.IsFountain(cellPos))
+                {
+                    // Fall back to coin if no fountain sprite assigned
+                    Sprite spriteToUse = fountainSprite != null ? fountainSprite : coinSprite;
+                    SpawnSprite(spriteToUse, fountainColor, worldPos, fountainSortingOrder, $"Fountain_{x}_{y}");
                 }
             }
         }

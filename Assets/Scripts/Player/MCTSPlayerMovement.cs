@@ -5,6 +5,9 @@ public class MCTSPlayerMovement : MonoBehaviour
 {
     private MCTSGridMover gridMover;
 
+    // How many move can make before this end turn
+    private int movesRemainingThisTurn = 0;
+
     private void Awake()
     {
         gridMover = GetComponent<MCTSGridMover>();
@@ -22,6 +25,11 @@ public class MCTSPlayerMovement : MonoBehaviour
         if (MCTSGameManager.Instance != null && !MCTSGameManager.Instance.IsPlayerTurn)
         {
             return;
+        }
+
+        if (movesRemainingThisTurn <= 0)
+        {
+            movesRemainingThisTurn = gridMover.MoveDistance;
         }
 
         Vector2 movementInput = context.ReadValue<Vector2>();
@@ -57,11 +65,15 @@ public class MCTSPlayerMovement : MonoBehaviour
 
         bool moved = gridMover.TryMove(direction.Value);
 
-        // Only end turn if player acturally move, bumping into obstacle not cost player turn
-        if (moved && MCTSGameManager.Instance != null)
+        // Only end turn if player acturally move, bumping into obstacle not cost player movement
+        if (moved)
         {
-            MCTSGameManager.Instance.EndPlayerTurn();
-        }
+            movesRemainingThisTurn--;
 
+            if (movesRemainingThisTurn <= 0 && MCTSGameManager.Instance != null)
+            {
+                MCTSGameManager.Instance.EndPlayerTurn();
+            }
+        }
     }
 }
