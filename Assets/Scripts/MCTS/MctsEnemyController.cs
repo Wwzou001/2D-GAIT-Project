@@ -2,7 +2,11 @@ using UnityEngine;
 
 public class MctsEnemyController : MonoBehaviour
 {
+    public enum AlgorithmType { MCS, MCTS }
+
     [SerializeField] private MCTSGameManager.Slot mySlot = MCTSGameManager.Slot.B;
+
+    [SerializeField] private AlgorithmType algorithm = AlgorithmType.MCTS;
 
     [SerializeField] private MCTSGridMover enemyMover;
     [SerializeField] private MCTSGridMover playerMover;
@@ -13,25 +17,53 @@ public class MctsEnemyController : MonoBehaviour
     [SerializeField] private bool logDecisions = true;
 
     public int SimulationsPerMove => simulationsPerMove;
+    public AlgorithmType Algorithm => algorithm;
 
-    public double LastDecisionTimeMs => agent != null ? agent.LastDecisionTimeMs : 0;
+    public double LastDecisionTimeMs => algorithm == AlgorithmType.MCS
+        ? (mcsAgent != null ? mcsAgent.LastDecisionTimeMs : 0)
+        : (mctsAgent != null ? mctsAgent.LastDecisionTimeMs : 0);
 
-    private MCSAgent agent;
+    // Only one agent in use at a time based on algorithm
+    private MCSAgent mcsAgent;
+    private MCTSAgent mctsAgent;
     private float timer;
 
     private void Awake()
     {
         if (enemyMover == null)
             enemyMover = GetComponent<MCTSGridMover>();
+    }
 
-        agent = new MCSAgent(simulationsPerMove, rolloutDepth);
+    private void Start()
+    {
+        BuildAgent();
+    }
+
+    private bool IsHunter()
+    {
+        if (MCTSGameManager.Instance == null) return true;
+        return MCTSGameManager.Instance.SlotForRole(MCTSGameManager.AgentRole.Hunter) == mySlot;
+    }
+
+    private void BuildAgent()
+    {
+        bool isHunter = IsHunter();
+        mcsAgent = new MCSAgent(simulationsPerMove, rolloutDepth, isHunter);
+        mctsAgent = new MCTSAgent(simulationsPerMove, rolloutDepth, isHunter: isHunter);  
     }
 
     // Set slider's min/max
     public void SetSimulationsPerMove(float value)
     {
         simulationsPerMove = Mathf.Max(0, Mathf.RoundToInt(value));
-        agent = new MCSAgent(simulationsPerMove, rolloutDepth);
+        BuildAgent();
+    }
+
+    // Let UI or toggle switch algorithms at runtime
+    public void SetAlgorithms(AlgorithmType newAlgorithms)
+    {
+        algorithm = newAlgorithms;
+        BuildAgent();
     }
 
     private void Update()
@@ -50,7 +82,17 @@ public class MctsEnemyController : MonoBehaviour
         if (timer < moveInterval) return;   
         timer = 0f;
 
-        Direction move = agent.ChooseMove(enemyMover.GridPosition, playerMover.GridPosition, out string log);
+        Direction move;
+        string log;
+
+        if (algorithm == AlgorithmType.MCS)
+        {
+            move = mcsAgent.ChooseMove(enemyMover.GridPosition, playerMover.GridPosition, out log);
+        }
+        else
+        {
+            move = mctsAgent.ChooseMove(enemyMover.GridPosition, playerMover.GridPosition, out log);
+        }
 
         if (logDecisions)
             Debug.Log(log);
