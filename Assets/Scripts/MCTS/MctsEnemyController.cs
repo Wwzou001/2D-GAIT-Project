@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class MctsEnemyController : MonoBehaviour
 {
+    [SerializeField] private MCTSGameManager.Slot mySlot = MCTSGameManager.Slot.B;
+
     [SerializeField] private MCTSGridMover enemyMover;
     [SerializeField] private MCTSGridMover playerMover;
 
@@ -14,7 +16,7 @@ public class MctsEnemyController : MonoBehaviour
 
     public double LastDecisionTimeMs => agent != null ? agent.LastDecisionTimeMs : 0;
 
-    private MctsAgent agent;
+    private MCSAgent agent;
     private float timer;
 
     private void Awake()
@@ -22,14 +24,14 @@ public class MctsEnemyController : MonoBehaviour
         if (enemyMover == null)
             enemyMover = GetComponent<MCTSGridMover>();
 
-        agent = new MctsAgent(simulationsPerMove, rolloutDepth);
+        agent = new MCSAgent(simulationsPerMove, rolloutDepth);
     }
 
     // Set slider's min/max
     public void SetSimulationsPerMove(float value)
     {
         simulationsPerMove = Mathf.Max(0, Mathf.RoundToInt(value));
-        agent = new MctsAgent(simulationsPerMove, rolloutDepth);
+        agent = new MCSAgent(simulationsPerMove, rolloutDepth);
     }
 
     private void Update()
@@ -38,14 +40,14 @@ public class MctsEnemyController : MonoBehaviour
             return;
 
         // Not enemy turn yet, wait
-        if (MCTSGameManager.Instance != null && MCTSGameManager.Instance.IsPlayerTurn)
+        if (MCTSGameManager.Instance != null && !MCTSGameManager.Instance.IsSlotTurn(mySlot))
         {
             timer = 0f;
             return;
         }
        
         timer += Time.deltaTime;
-        if (timer < moveInterval) return;
+        if (timer < moveInterval) return;   
         timer = 0f;
 
         Direction move = agent.ChooseMove(enemyMover.GridPosition, playerMover.GridPosition, out string log);
@@ -57,7 +59,7 @@ public class MctsEnemyController : MonoBehaviour
 
         if (moved && MCTSGameManager.Instance != null)
         {
-            MCTSGameManager.Instance.EndEnemyTurn();
+            MCTSGameManager.Instance.EndTurn(mySlot);
         }
     }
 }

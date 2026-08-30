@@ -4,7 +4,7 @@ using System.Diagnostics;
 using UnityEngine;
 
 // Runs a simple Monte Carlo search: for each direction the enemy could move,
-public class MctsAgent
+public class MCSAgent
 {
     private readonly int simulationsPerMove;
     private readonly int rolloutDepth;
@@ -12,7 +12,7 @@ public class MctsAgent
 
     public double LastDecisionTimeMs { get; private set; }
 
-    public MctsAgent(int simulationsPerMove = 300, int rolloutDepth = 15)
+    public MCSAgent(int simulationsPerMove = 300, int rolloutDepth = 15)
     {
         this.simulationsPerMove = simulationsPerMove;
         this.rolloutDepth = rolloutDepth;
@@ -23,11 +23,11 @@ public class MctsAgent
         Stopwatch stopwatch = Stopwatch.StartNew();
 
         List<Direction> legalMoves = GetLegalMoves(enemyPos);
-        log = $"[MCTS] Enemy@{enemyPos} vs Player@{playerPos}\n";
+        log = $"[MCS] Enemy@{enemyPos} vs Player@{playerPos}\n";
 
         if (legalMoves.Count == 0)
         {
-            log += "[MCTS] No legal moves, staying put.";
+            log += "[MCS] No legal moves, staying put.";
             stopwatch.Stop();
             LastDecisionTimeMs = stopwatch.Elapsed.TotalMilliseconds;
             return Direction.Up; // won't actually move, TryMove will just fail
@@ -37,7 +37,7 @@ public class MctsAgent
         if (simulationsPerMove <= 0)
         {
             Direction randomMove = legalMoves[rng.Next(legalMoves.Count)];
-            log += $"[MCTS] 0 simulations \u2014 picking a purely random move: {randomMove}";
+            log += $"[MCS] 0 simulations \u2014 picking a purely random move: {randomMove}";
             stopwatch.Stop();
             LastDecisionTimeMs = stopwatch.Elapsed.TotalMilliseconds;
             return randomMove;
@@ -62,7 +62,7 @@ public class MctsAgent
         stopwatch.Stop();
         LastDecisionTimeMs = stopwatch.Elapsed.TotalMilliseconds;
 
-        log += $"[MCTS] Chose {bestMove} ({simulationsPerMove} simulations, {LastDecisionTimeMs:F2} ms";
+        log += $"[MCS] Chose {bestMove} ({simulationsPerMove} simulations, {LastDecisionTimeMs:F2} ms)";
         return bestMove;
     }
 

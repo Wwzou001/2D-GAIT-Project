@@ -6,19 +6,28 @@ public class MCTSGameManager : MonoBehaviour
 {
     public static MCTSGameManager Instance { get; private set; }
 
-    [SerializeField] private MCTSGridMover player;
-    [SerializeField] private MCTSGridMover enemy;
+    public enum Slot { A, B }
+
+    public enum AgentRole { Collector, Hunter }
+
+    [SerializeField] private MCTSGridMover agentA;
+    [SerializeField] private AgentRole agentARole = AgentRole.Collector;
+
+    [SerializeField] private MCTSGridMover agentB;
+    [SerializeField] private AgentRole agentBRole = AgentRole.Hunter;
+
+    [SerializeField] private Slot firstTurn = Slot.A;
 
     [SerializeField] private GameObject endGamePanel;
     [SerializeField] private TMP_Text resultText;
     [SerializeField] private TMP_Text coinCounterText;
 
-    [SerializeField] private bool playerGoesFirst = true;
-
     private bool gameOver = false;
 
     public bool GameOver => gameOver;
-    public bool IsPlayerTurn {  get; private set; }
+    public Slot CurrentTurn { get; private set; }
+
+    public bool IsPlayerTurn => IsSlotTurn(SlotForRole(AgentRole.Collector));
 
     private void Awake()
     {
@@ -29,23 +38,23 @@ public class MCTSGameManager : MonoBehaviour
             endGamePanel.SetActive(false);
         }
 
-        IsPlayerTurn = playerGoesFirst;
+        CurrentTurn = firstTurn;
     }
     void Start()
     {
         UpdateCoinCounter();
     }
 
-    // Call by MCTSPlayerMover after a successful move
-    public void EndPlayerTurn()
-    {
-        IsPlayerTurn = false;
-    }
+    public bool IsSlotTurn(Slot slot) => CurrentTurn == slot;
 
-    // Call by MCTSEnemyController after a successful move
-    public void EndEnemyTurn()
+    // Which slot current hold a given role
+    public Slot SlotForRole(AgentRole role) => agentARole == role ? Slot.A : Slot.B;
+
+    // Call by human input or an AI agent controller
+    public void EndTurn(Slot slot)
     {
-        IsPlayerTurn = true;
+        if (CurrentTurn != slot) return; // ignore stale or out of turn call
+        CurrentTurn = slot == Slot.A ? Slot.B : Slot.A;
     }
 
     public void CheckGameStatus()
@@ -57,17 +66,19 @@ public class MCTSGameManager : MonoBehaviour
 
         UpdateCoinCounter();
 
-        // Loss condition
-        if (player != null && enemy != null && player.GridPosition == enemy.GridPosition)
+        // Win/Loss condition: two agent at same cell, hunter win, collector loss
+        if (agentA != null && agentB != null && agentA.GridPosition == agentB.GridPosition)
         {
-            LoseGame();
+            Slot hunterSlot = SlotForRole(AgentRole.Hunter);
+            EndGame(winningSlot: hunterSlot);
             return;
         }
 
         // Win condition
         if (GridSystem.Instance.RemainingCoins() == 0)
         {
-            WinGame();
+            Slot collectorSlot = SlotForRole(AgentRole.Collector);
+            EndGame(winningSlot: collectorSlot);
         }
     }
 
@@ -83,10 +94,14 @@ public class MCTSGameManager : MonoBehaviour
         }
     }
 
-    private void WinGame()
+    private void EndGame(Slot winningSlot)
     {
         gameOver = true;
-        Debug.Log("Game Over - Player Wins!");
+
+        bool collectorWon = winningSlot == SlotForRole(AgentRole.Collector);
+        string message = collectorWon ? "You Win!" : "You Lose!";
+        string logMessage = collectorWon ? "Game Over - Player Wins!" : "Game Over - Player Loses!";
+        Debug.Log(logMessage);
 
         if (endGamePanel != null)
         {
@@ -95,23 +110,7 @@ public class MCTSGameManager : MonoBehaviour
 
         if (resultText != null)
         {
-            resultText.text = "You Win!";
-        }
-    }
-
-    private void LoseGame()
-    {
-        gameOver = true;
-        Debug.Log("Game Over - Player Loses!");
-
-        if (endGamePanel != null)
-        {
-            endGamePanel.SetActive(true);
-        }
-
-        if (resultText != null)
-        {
-            resultText.text = "You Lose!";
+            resultText.text = message;
         }
     }
 

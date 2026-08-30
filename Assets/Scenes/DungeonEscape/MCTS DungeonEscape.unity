@@ -1054,12 +1054,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5284c66d12a49941b865c4222af8631, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MCTSGameManager
-  player: {fileID: 1643263925318783897}
-  enemy: {fileID: 952819977}
+  agentA: {fileID: 1643263925318783897}
+  agentARole: 0
+  agentB: {fileID: 952819977}
+  agentBRole: 1
+  firstTurn: 0
   endGamePanel: {fileID: 1887348294}
   resultText: {fileID: 1953112427}
   coinCounterText: {fileID: 1975560832}
-  playerGoesFirst: 1
 --- !u!1 &1182429238
 GameObject:
   m_ObjectHideFlags: 0

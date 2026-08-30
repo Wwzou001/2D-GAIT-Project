@@ -88,7 +88,7 @@ public class GridSystem : MonoBehaviour
 
             if (grid[x, y] != CellType.Empty) continue;
 
-            if (pos == playerStart || pos == npcStart) continue;
+            if (IsAdjacentToStart(pos, playerStart) || IsAdjacentToStart(pos, npcStart)) continue;
 
             bool tooCloseToAnotherFountain = false;
             foreach (Vector2Int existing in fountainPositions)
@@ -125,7 +125,9 @@ public class GridSystem : MonoBehaviour
 
     public bool IsObstacle(Vector2Int pos)
     {
-        return IsInBounds(pos) && grid[pos.x, pos.y] == CellType.Obstacle;
+        if (!IsInBounds(pos)) return false;
+        CellType cell = grid[pos.x, pos.y];
+        return cell == CellType.Obstacle || cell == CellType.Fountain;
     }
 
     public bool IsCoin(Vector2Int pos)

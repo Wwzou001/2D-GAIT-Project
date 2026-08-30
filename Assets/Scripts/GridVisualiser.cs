@@ -63,23 +63,25 @@ public class GridVisulizer : MonoBehaviour
                 SpawnSprite(floorSprite, floorColor, worldPos, floorSortingOrder, $"Floor_{x}_{y}");
 
                 // layer an obstacle, coin or fountain on top
-                if (GridSystem.Instance.IsObstacle(cellPos))
-                {
-                    SpawnSprite(obstacleSprite, obstacleColor, worldPos, obstacleSortingOrder, $"Obstacle_{x}_{y}");
-                }
-                else if (GridSystem.Instance.IsCoin(cellPos))
-                {
-                    GameObject coinObj = SpawnSprite(coinSprite, coinColor, worldPos, coinSortingOrder, $"Coin_{x}_{y}");
-                    if ( coinObj != null )
-                    {
-                        coinObjects[cellPos] = coinObj;
-                    }
-                }
-                else if (GridSystem.Instance.IsFountain(cellPos))
+                if (GridSystem.Instance.IsFountain(cellPos))
                 {
                     // Fall back to coin if no fountain sprite assigned
                     Sprite spriteToUse = fountainSprite != null ? fountainSprite : coinSprite;
                     SpawnSprite(spriteToUse, fountainColor, worldPos, fountainSortingOrder, $"Fountain_{x}_{y}");
+                }
+                    
+                else if (GridSystem.Instance.IsObstacle(cellPos))
+                {
+                    SpawnSprite(obstacleSprite, obstacleColor, worldPos, obstacleSortingOrder, $"Obstacle_{x}_{y}");
+                }
+                    
+                else if (GridSystem.Instance.IsCoin(cellPos))
+                {
+                    GameObject coinObj = SpawnSprite(coinSprite, coinColor, worldPos, coinSortingOrder, $"Coin_{x}_{y}");
+                    if (coinObj != null)
+                    {
+                        coinObjects[cellPos] = coinObj;
+                    }
                 }
             }
         }

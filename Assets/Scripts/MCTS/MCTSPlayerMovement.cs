@@ -3,6 +3,8 @@ using UnityEngine.InputSystem;
 
 public class MCTSPlayerMovement : MonoBehaviour
 {
+    [SerializeField] private MCTSGameManager.Slot mySlot = MCTSGameManager.Slot.A;
+
     private MCTSGridMover gridMover;
 
     // How many move can make before this end turn
@@ -22,7 +24,7 @@ public class MCTSPlayerMovement : MonoBehaviour
 
 
         // Not player turn yet, ignore player input
-        if (MCTSGameManager.Instance != null && !MCTSGameManager.Instance.IsPlayerTurn)
+        if (MCTSGameManager.Instance != null && !MCTSGameManager.Instance.IsSlotTurn(mySlot))
         {
             return;
         }
@@ -72,7 +74,7 @@ public class MCTSPlayerMovement : MonoBehaviour
 
             if (movesRemainingThisTurn <= 0 && MCTSGameManager.Instance != null)
             {
-                MCTSGameManager.Instance.EndPlayerTurn();
+                MCTSGameManager.Instance.EndTurn(mySlot);
             }
         }
     }
