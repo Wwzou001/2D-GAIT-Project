@@ -28,6 +28,9 @@ public class MctsEnemyController : MonoBehaviour
     private MCTSAgent mctsAgent;
     private float timer;
 
+    // 1 move normal, 2 move when fountain buff active
+    private int movesRemainingThisTurn = 0;
+
     private void Awake()
     {
         if (enemyMover == null)
@@ -75,12 +78,19 @@ public class MctsEnemyController : MonoBehaviour
         if (MCTSGameManager.Instance != null && !MCTSGameManager.Instance.IsSlotTurn(mySlot))
         {
             timer = 0f;
+            movesRemainingThisTurn = 0; // reset to check next turn buff fresh
             return;
         }
-       
+
         timer += Time.deltaTime;
-        if (timer < moveInterval) return;   
+        if (timer < moveInterval) return;
         timer = 0f;
+
+        // Start new turn
+        if (movesRemainingThisTurn <= 0)
+        {
+            movesRemainingThisTurn = enemyMover.MoveDistance;
+        }
 
         Direction move;
         string log;
@@ -99,9 +109,14 @@ public class MctsEnemyController : MonoBehaviour
 
         bool moved = enemyMover.TryMove(move);
 
-        if (moved && MCTSGameManager.Instance != null)
+        // Only end turn when move succeed
+        if (moved)
         {
-            MCTSGameManager.Instance.EndTurn(mySlot);
+            movesRemainingThisTurn--;
+            if (movesRemainingThisTurn <= 0 && MCTSGameManager.Instance != null)
+            {
+                MCTSGameManager.Instance.EndTurn(mySlot);
+            }
         }
     }
 }

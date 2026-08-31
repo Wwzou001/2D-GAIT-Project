@@ -2366,7 +2366,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MctsEnemyController
   mySlot: 1
-  algorithm: 1
+  algorithm: 0
   enemyMover: {fileID: 952819977}
   playerMover: {fileID: 1643263925318783897}
   simulationsPerMove: 300
