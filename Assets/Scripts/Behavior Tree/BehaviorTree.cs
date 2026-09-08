@@ -85,7 +85,9 @@ public class BehaviorTree
     // Selector nodes will attempt to execute all children nodes - if any succeed then the selector stops trying to execute child nodes and succeeds
     public class Selector : Node {
 
-        public override Status Process(){
+        public Selector(string name = "Selector") : base(name){}
+
+        public override State Process(){
 
             if (currentChild < children.Count){
                 
@@ -104,8 +106,8 @@ public class BehaviorTree
 
                     //Child Failed so I will attempt to run the next child, therefore i am still running
                     default:
-                        currentChild++
-                        return Status.Running;
+                        currentChild++;
+                        return State.Running;
                 }
             }
             //If the selector node runs out of child nodes and none are successful then the selector node fails
@@ -145,7 +147,7 @@ public class BehaviorTree
                         //Unsure if reset early if sequence fails? Will check Later
                         Reset();
                         return State.Failure;
-                        
+
                     //Child succeeded so i will check the next child
                     default:
                         currentChild++;

@@ -3,7 +3,7 @@ using TMPro;
 
 public class EnemyBTTest : MonoBehaviour
 {
-    private BehaviorTree.Sequence root;
+    private BehaviorTree.Selector root;
 
     [SerializeField]
     private TMP_Text stateText;
