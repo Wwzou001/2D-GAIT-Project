@@ -20,13 +20,18 @@ public class EnemyBTTest : MonoBehaviour
         UpdateStateText();
     }
 
+
+    // Building the entire behavoir tree by creating a sequence then adding the children
+    // Needs to be properly done to better reflect the planned behavior tree
+    // Needs to have selectors nodes
     private void BuildTree()
     {
-        root = new BehaviorTree.Sequence("Enemy");
-
-        root.AddChild(new BehaviorTree.Leaf(new Patrol(),"Patrol"));
+        root = new BehaviorTree.Selector("Enemy");
 
         root.AddChild(new BehaviorTree.Leaf(new Chase(),"Chase"));
+        root.AddChild(new BehaviorTree.Leaf(new Patrol(),"Patrol"));
+
+        
         
     }
 
