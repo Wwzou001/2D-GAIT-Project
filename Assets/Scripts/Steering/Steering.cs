@@ -8,6 +8,10 @@ namespace SteeringBehaviours
     {
         public bool Enabled;
         public LayerMask ObstacleLayer;
+
+        public float LookAheadDistance = 3f;
+        public float CheckRadius = 0.5f;
+        public float AngleStep = 10f;
     }
     
     public class Steering
@@ -133,8 +137,8 @@ namespace SteeringBehaviours
         //overshoot target because there is no slow down
         public static Vector2 SeekCore(Vector2 currentPos, Vector2 targetPos, float maxSpeed)
         {
-            Vector2 direction = (targetPos - currentPos).normalized;
-            return direction * maxSpeed;
+            Vector2 direction = (targetPos - currentPos).normalized * maxSpeed;
+            return direction;
         }
 
         // TODO: implement Arrive
@@ -166,10 +170,38 @@ namespace SteeringBehaviours
         }
 
         // TODO: implement obstacle avoidance
-        // Check if the path to targetPos is blocked (Physics2D.CircleCast). If it is, try turning left/right 
-       // (use Rotate() above) until u find a clear direction, and return that as the new target
+        // Check if the path to targetPos is blocked. If it is
+        // tries turning left and right in small steps until it finds a
+        // clear direction, then aims for a point along that direction
         public static Vector2 GetAvoidanceTarget(Vector2 currentPos, Vector2 targetPos, AvoidanceSettings avoidance)
         {
+            Vector2 toTarget = targetPos - currentPos;
+            Vector2 direction = toTarget.normalized;
+            float checkDistance = Mathf.Min(avoidance.LookAheadDistance, toTarget.magnitude);
+
+            bool blocked = Physics2D.CircleCast(currentPos, avoidance.CheckRadius, direction, checkDistance, avoidance.ObstacleLayer);
+            if (!blocked)
+            {
+                return targetPos;
+            }
+
+            // straight path is blocked, try turning left/right a bit at a time
+            for (float angle = avoidance.AngleStep; angle <= 90f; angle += avoidance.AngleStep)
+            {
+                Vector2 rightDir = Rotate(direction, angle);
+                if (!Physics2D.CircleCast(currentPos, avoidance.CheckRadius, rightDir, checkDistance, avoidance.ObstacleLayer))
+                {
+                    return currentPos + rightDir * checkDistance;
+                }
+
+                Vector2 leftDir = Rotate(direction, -angle);
+                if (!Physics2D.CircleCast(currentPos, avoidance.CheckRadius, leftDir, checkDistance, avoidance.ObstacleLayer))
+                {
+                    return currentPos + leftDir * checkDistance;
+                }
+            }
+
+            // couldn't find a clear path, just go straight rather than get stuck
             return targetPos;
         }
 
@@ -177,21 +209,67 @@ namespace SteeringBehaviours
         // Should push away from nearby neighbours so they don't clump together
         public static Vector2 GetSeparation(Vector2 currentPos, List<Transform> neighbours, float maxSpeed)
         {
-            return Vector2.zero;
+            Vector2 pushAway = Vector2.zero;
+
+            foreach (Transform neighbour in neighbours)
+            {
+                Vector2 offset = currentPos - (Vector2)neighbour.position;
+                float distance = offset.magnitude;
+
+                if (distance > 0f)
+                {
+                    pushAway += offset.normalized / distance;
+                }
+            }
+
+            if (neighbours.Count > 0)
+            {
+                pushAway = pushAway.normalized * maxSpeed;
+            }
+
+            return pushAway;
         }
 
         // TODO: implement cohesion
         // Should pull toward the average position of nearby neighbours
         public static Vector2 GetCohesion(Vector2 currentPos, List<Transform> neighbours, float maxSpeed)
         {
-            return Vector2.zero;
+            Vector2 pullTowards = Vector2.zero;
+
+            foreach (Transform neighbour in neighbours)
+            {
+                pullTowards += (Vector2)neighbour.position - currentPos;
+            }
+
+            if (neighbours.Count > 0)
+            {
+                pullTowards = pullTowards.normalized * maxSpeed;
+            }
+
+            return pullTowards;
         }
 
         // TODO: implement alignment
         // Should match the average heading/velocity of nearby neighbours
         public static Vector2 GetAlignment(List<Transform> neighbours, float maxSpeed)
         {
-            return Vector2.zero;
+            Vector2 averageHeading = Vector2.zero;
+
+            foreach (Transform neighbour in neighbours)
+            {
+                Rigidbody2D rb = neighbour.GetComponent<Rigidbody2D>();
+                if (rb != null)
+                {
+                    averageHeading += rb.linearVelocity;
+                }
+            }
+
+            if (neighbours.Count > 0)
+            {
+                averageHeading = averageHeading.normalized * maxSpeed;
+            }
+
+            return averageHeading;
         }
 
         #endregion
