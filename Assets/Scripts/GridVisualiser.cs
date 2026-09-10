@@ -19,6 +19,11 @@ public class GridVisulizer : MonoBehaviour
     [SerializeField] private int coinSortingOrder = 1;
     [SerializeField] private int fountainSortingOrder = 1;
 
+    // new obstacle
+    [SerializeField] private Sprite slowSprite;
+    [SerializeField] private Color slowColor = Color.white;
+    [SerializeField] private int slowSortingOrder = 1;
+
     private readonly Dictionary<Vector2Int, GameObject> coinObjects = new Dictionary<Vector2Int, GameObject>();
 
     void Start()
@@ -82,6 +87,11 @@ public class GridVisulizer : MonoBehaviour
                     {
                         coinObjects[cellPos] = coinObj;
                     }
+                }
+                // new obstacle
+                else if (GridSystem.Instance.IsSlow(cellPos))  // add this
+                {
+                    SpawnSprite(slowSprite, slowColor, worldPos, slowSortingOrder, $"Slow_{x}_{y}");
                 }
             }
         }

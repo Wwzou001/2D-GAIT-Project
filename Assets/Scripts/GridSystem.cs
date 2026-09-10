@@ -2,7 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
-public enum CellType { Empty, Obstacle, Coin, Fountain }
+public enum CellType { Empty, Obstacle, Coin, Fountain, Slow }
 
 
 public class GridSystem : MonoBehaviour
@@ -29,6 +29,9 @@ public class GridSystem : MonoBehaviour
 
     public event Action<Vector2Int> CoinCollected;
 
+// for slowing player down
+    public int slowCount = 2; 
+
     void Awake()
     {
         Instance = this;
@@ -47,6 +50,7 @@ public class GridSystem : MonoBehaviour
         PlaceRandomly(CellType.Coin, coinCount, isObstacle: false);
         PlaceRandomly(CellType.Obstacle, obstacleCount, isObstacle: true);
         PlaceFountains(fountainCount);
+        PlaceRandomly(CellType.Slow, slowCount, isObstacle: false);  // new obstacle
     }
 
     void PlaceRandomly(CellType type, int count, bool isObstacle)
@@ -153,6 +157,12 @@ public class GridSystem : MonoBehaviour
             }
         }
         return false;
+    }
+
+    //new obstacle
+    public bool IsSlow(Vector2Int pos)
+    {
+        return IsInBounds(pos) && grid[pos.x, pos.y] == CellType.Slow;
     }
 
     public void CollectCoin(Vector2Int pos)

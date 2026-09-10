@@ -10,6 +10,12 @@ public class GridMover : MonoBehaviour
 
     [SerializeField] private bool canCollectCoins = true;
 
+// new obstacle 
+    [SerializeField] private float slowCooldownDuration = 1f;
+    private float moveCooldownUntil = 0f;
+
+    private bool IsOnCooldown => Time.time < moveCooldownUntil;
+
     void Start()
     {
         GridPosition = startPosition;
@@ -18,6 +24,10 @@ public class GridMover : MonoBehaviour
 
     public bool TryMove(Direction dir)
     {
+        //slowing down player
+        if (IsOnCooldown)
+            return false;
+
         // when game over, nobody should able to move
         if (GameManager.Instance != null && GameManager.Instance.GameOver)
         {
@@ -34,6 +44,12 @@ public class GridMover : MonoBehaviour
 
         GridPosition = targetPos;
         transform.position = GridSystem.Instance.GridToWorld(GridPosition);
+
+        //slwoing down player
+        if (GridSystem.Instance.IsSlow(targetPos))
+        {
+            moveCooldownUntil = Time.time + slowCooldownDuration;
+        }
 
         OnEnterCell(targetPos);
 
