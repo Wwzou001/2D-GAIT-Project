@@ -45,7 +45,6 @@ public class PlatformerPlayerController : MonoBehaviour
 
         if (rb.linearVelocity.y > jumpForce)
         {
-            Debug.Log($"Clamping velocity from {rb.linearVelocity.y} to {jumpForce}");
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
         }
     }
@@ -54,13 +53,20 @@ public class PlatformerPlayerController : MonoBehaviour
     public void MoveHorizontal(float direction)
     {
         rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
+
+        // Flip sprite to moving direction
+        if (Mathf.Abs(direction) > 0.01f)
+        {
+            Vector3 scale = transform.localScale;
+            scale.x = Mathf.Abs(scale.x) * (direction > 0 ? 1 : -1);
+            transform.localScale = scale;
+        }
     }
 
     // Same force for each jump
     public void TryJump()
     {
         if (!isGrounded) return;
-        if (rb.linearVelocity.y > 0.1f) return;
 
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
     }
