@@ -9,6 +9,7 @@ public class GridMover : MonoBehaviour
     [SerializeField] private Vector2Int startPosition = Vector2Int.zero;
 
     [SerializeField] private bool canCollectCoins = true;
+    [SerializeField] private bool canCollectKeys = true; 
 
 // new obstacle 
     [SerializeField] private float slowCooldownDuration = 1f;
@@ -66,6 +67,10 @@ public class GridMover : MonoBehaviour
         if (canCollectCoins && GridSystem.Instance.IsCoin(pos))
         {
             GridSystem.Instance.CollectCoin(pos);
+        }
+        if (canCollectKeys && GridSystem.Instance.IsKey(pos))        
+        {
+            GridSystem.Instance.CollectKey(pos);    
         }
     }
 

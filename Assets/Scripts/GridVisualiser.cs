@@ -24,6 +24,13 @@ public class GridVisulizer : MonoBehaviour
     [SerializeField] private Color slowColor = Color.white;
     [SerializeField] private int slowSortingOrder = 1;
 
+// key 
+    [SerializeField] private Sprite keySprite;
+    [SerializeField] private Color keyColor = Color.white;
+    [SerializeField] private int keySortingOrder = 1;
+
+private Dictionary<Vector2Int, GameObject> activeKeySprites = new Dictionary<Vector2Int, GameObject>();
+
     private readonly Dictionary<Vector2Int, GameObject> coinObjects = new Dictionary<Vector2Int, GameObject>();
 
     void Start()
@@ -34,8 +41,10 @@ public class GridVisulizer : MonoBehaviour
             return;
         }
         BuildGridVisuals();
+        SpawnAllKeys();
 
         GridSystem.Instance.CoinCollected += HandleCoinCollected;
+        GridSystem.Instance.KeyCollected += HandleKeyCollected;   
     }
 
     private void OnDestroy()
@@ -43,7 +52,48 @@ public class GridVisulizer : MonoBehaviour
         if (GridSystem.Instance != null)
         {
             GridSystem.Instance.CoinCollected -= HandleCoinCollected;
+            GridSystem.Instance.KeyCollected -= HandleKeyCollected;
         }
+    }
+ // key spawn and collect
+    private void SpawnAllKeys()
+    {
+        if (keySprite == null)
+        {
+            Debug.LogWarning("CoinVisualizer: no key sprite assigned in the Inspector.");
+            return;
+        }
+
+        int width = GridSystem.Instance.Width;
+        int height = GridSystem.Instance.Height;
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Vector2Int pos = new Vector2Int(x, y);
+                if (GridSystem.Instance.IsKey(pos))
+                {
+                    SpawnKeySprite(pos);
+                }
+            }
+        }
+    }
+
+    private void SpawnKeySprite(Vector2Int gridPos)
+    {
+        Vector3 worldPos = GridSystem.Instance.GridToWorld(gridPos);
+
+        GameObject go = new GameObject($"Key_{gridPos.x}_{gridPos.y}");
+        go.transform.SetParent(transform);
+        go.transform.position = worldPos;
+
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = keySprite;
+        sr.color = keyColor;
+        sr.sortingOrder = keySortingOrder;
+
+        activeKeySprites[gridPos] = go;
     }
 
     void HandleCoinCollected(Vector2Int pos)
@@ -52,6 +102,15 @@ public class GridVisulizer : MonoBehaviour
         {
             Destroy(coinObj);
             coinObjects.Remove(pos);
+        }
+    }
+
+    void HandleKeyCollected(Vector2Int pos)
+    {
+        if (activeKeySprites.TryGetValue(pos, out GameObject keyObj))
+        {
+            Destroy(keyObj);
+            activeKeySprites.Remove(pos);
         }
     }
 

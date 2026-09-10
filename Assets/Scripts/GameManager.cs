@@ -15,6 +15,11 @@ public class GameManager : MonoBehaviour
     [SerializeField] private TMP_Text resultText;
     [SerializeField] private TMP_Text coinCounterText;
 
+    [Header("Door")]
+    [SerializeField] private Vector2Int doorGridPosition;
+    
+    private bool hasKey = false; 
+
     private bool gameOver = false;
 
     public bool GameOver => gameOver;
@@ -30,6 +35,23 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         UpdateCoinCounter();
+        if (GridSystem.Instance != null)
+        {
+            GridSystem.Instance.KeyCollected += HandleKeyCollected;
+        }
+    }
+
+    private void HandleKeyCollected(Vector2Int pos)
+    {
+        hasKey = true;
+    }
+
+    private void OnDestroy()
+    {
+        if (GridSystem.Instance != null)
+        {
+            GridSystem.Instance.KeyCollected -= HandleKeyCollected;
+        }
     }
 
     public void CheckGameState()
@@ -50,8 +72,8 @@ public class GameManager : MonoBehaviour
         }
 
         // WIN CONDITION
-        // All coins have been collected.
-        if (GridSystem.Instance.RemainingCoins() == 0)
+        // Player must have the key AND be standing on the door's cell.
+        if (hasKey && player.GridPosition == doorGridPosition)
         {
             WinGame();
         }
@@ -65,12 +87,13 @@ public class GameManager : MonoBehaviour
             int remainingCoins = GridSystem.Instance.RemainingCoins();
             int collectedCoins = totalCoins - remainingCoins;
 
-            coinCounterText.text = $"Coins: {collectedCoins} / {totalCoins}";
+            int totalKeys = GridSystem.Instance.TotalKeys;
+            int remainingKeys = GridSystem.Instance.RemainingKeys();
+            int collectedKeys = totalKeys - remainingKeys;
+
+            coinCounterText.text = $"Coins: {collectedCoins} / {totalCoins}\nKey: {collectedKeys} / {totalKeys}";
         }
     }
-
-
-
 
     private void WinGame()
     {

@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 9177886115677742840}
   - component: {fileID: 4003828861989700938}
   m_Layer: 0
-  m_Name: Spider
+  m_Name: Fly
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -83,7 +83,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 5119971492981962814, guid: 03d0b7e954798477895a1ddb4c58f2ab, type: 3}
+  m_Sprite: {fileID: -8393169711176511969, guid: 62d3b4f6bfd165e47a0c2e9b930f78bc, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -132,13 +132,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fa360d0df3374651a2e889ee5bc36a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpiderFlockMember
+  State: 1
+  player: {fileID: 0}
+  fleeTriggerRange: 2
+  stopFleeingRange: 4
   separationWeight: 1.5
   cohesionWeight: 1
   alignmentWeight: 1
-  maxSpeed: 4
+  boundaryWeight: 1
+  maxSpeed: 3
   maxAccel: 8
   accelTime: 0.25
   neighbourRadius: 3
+  boundaryCenter: {x: 0, y: 0}
+  boundaryDims: {x: 6, y: 6}
   avoidance:
     Enabled: 1
     ObstacleLayer:

@@ -2,7 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
-public enum CellType { Empty, Obstacle, Coin, Fountain, Slow }
+public enum CellType { Empty, Obstacle, Coin, Fountain, Slow, Key }
 
 
 public class GridSystem : MonoBehaviour
@@ -20,6 +20,8 @@ public class GridSystem : MonoBehaviour
 
     [SerializeField] private int fountainCount = 0; // default off, only MCTS need to change value
 
+    [SerializeField] private int keyCount = 1; // key
+
     // Confirm character position rule, player bottom left, enemy top right
     public Vector2Int playerStart => new Vector2Int(0, 0);
     public Vector2Int npcStart => new Vector2Int(width - 1, height - 1);
@@ -28,6 +30,9 @@ public class GridSystem : MonoBehaviour
     private List<Vector2Int> fountainPositions = new List<Vector2Int>();
 
     public event Action<Vector2Int> CoinCollected;
+    public event Action<Vector2Int> KeyCollected; 
+
+    public int TotalKeys => keyCount;
 
 // for slowing player down
     public int slowCount = 2; 
@@ -37,6 +42,28 @@ public class GridSystem : MonoBehaviour
         Instance = this;
         grid = new CellType[width, height];
         InitialiseGrid();
+    }
+
+    private void SpawnObstacleColliders()
+    {
+        for (int x = 0; x < Width; x++)
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                Vector2Int pos = new Vector2Int(x, y);
+                if (IsObstacle(pos))
+                {
+                    GameObject go = new GameObject($"ObstacleCollider_{x}_{y}");
+                    go.transform.position = GridToWorld(pos);
+
+                    Rigidbody2D rb = go.AddComponent<Rigidbody2D>();
+                    rb.bodyType = RigidbodyType2D.Static;
+
+                    BoxCollider2D collider = go.AddComponent<BoxCollider2D>();
+                    collider.size = new Vector2(0.9f, 0.9f);
+                }
+            }
+        }
     }
 
     void InitialiseGrid()
@@ -51,6 +78,8 @@ public class GridSystem : MonoBehaviour
         PlaceRandomly(CellType.Obstacle, obstacleCount, isObstacle: true);
         PlaceFountains(fountainCount);
         PlaceRandomly(CellType.Slow, slowCount, isObstacle: false);  // new obstacle
+        PlaceRandomly(CellType.Key, keyCount, isObstacle: false); // key
+        SpawnObstacleColliders();   
     }
 
     void PlaceRandomly(CellType type, int count, bool isObstacle)
@@ -144,6 +173,18 @@ public class GridSystem : MonoBehaviour
         return IsInBounds(pos) && grid[pos.x, pos.y] == CellType.Fountain;
     }
 
+    public bool IsKey(Vector2Int pos)
+    {
+        return IsInBounds(pos) && grid[pos.x, pos.y] == CellType.Key;
+    }
+
+    public void CollectKey(Vector2Int pos)
+    {
+        if (IsKey(pos))
+            grid[pos.x, pos.y] = CellType.Empty;
+            KeyCollected?.Invoke(pos);   
+    }
+
     // Check if any fountain within surround 8 cells
     public bool IsNearFountain(Vector2Int pos)
     {
@@ -181,6 +222,15 @@ public class GridSystem : MonoBehaviour
         for (int x = 0; x < Width; x++)
             for (int y = 0; y < Height; y++)
                 if (grid[x, y] == CellType.Coin) count++;
+        return count;
+    }
+
+    public int RemainingKeys()
+    {
+        int count = 0;
+        for (int x = 0; x < Width; x++)
+            for (int y = 0; y < Height; y++)
+                if (grid[x, y] == CellType.Key) count++;
         return count;
     }
 
