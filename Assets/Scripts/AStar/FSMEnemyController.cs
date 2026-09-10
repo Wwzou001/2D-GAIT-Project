@@ -1,10 +1,17 @@
 using UnityEngine;
+using TMPro;
 
-
-/// Sprint 2 FSM skeleton.
-/// The enemy switches between PATROL and CHASE according to
-/// Manhattan distance from the player.
-
+/// <summary>
+/// FSM reference-progress implementation.
+///
+/// States:
+/// PATROL -> CHASE -> SEARCH -> PATROL
+///
+/// The enemy patrols normally.
+/// If the player enters the chase distance, the enemy chases.
+/// If the player escapes, the enemy searches the player's
+/// last known position before returning to patrol.
+/// </summary>
 
 [RequireComponent(typeof(GridMover))]
 public class FSMEnemyController : MonoBehaviour
@@ -12,7 +19,8 @@ public class FSMEnemyController : MonoBehaviour
     public enum EnemyState
     {
         Patrol,
-        Chase
+        Chase,
+        Search
     }
 
     [Header("References")]
@@ -23,29 +31,52 @@ public class FSMEnemyController : MonoBehaviour
     [SerializeField] private float moveInterval = 0.5f;
 
     [Header("Patrol")]
-    [SerializeField] private Vector2Int patrolPointA = new Vector2Int(4, 4);
-    [SerializeField] private Vector2Int patrolPointB = new Vector2Int(0, 4);
+    [SerializeField] private Vector2Int patrolPointA =
+        new Vector2Int(4, 4);
 
-    [Header("Debug")]
+    [SerializeField] private Vector2Int patrolPointB =
+        new Vector2Int(0, 4);
+
+    [Header("Search")]
+    [SerializeField] private float searchDuration = 2f;
+
+    [Header("Teaching / Debug")]
     [SerializeField] private bool showDebugLogs = true;
 
+   
+    [SerializeField] private TMP_Text stateText;
+
     private GridMover mover;
+
     private EnemyState currentState = EnemyState.Patrol;
+
     private Vector2Int currentPatrolTarget;
+
+    // Remembers where the player was last seen.
+    private Vector2Int lastKnownPlayerPosition;
+
     private float moveTimer;
+    private float searchTimer;
 
     public EnemyState CurrentState => currentState;
 
     private void Awake()
     {
         mover = GetComponent<GridMover>();
+
         currentPatrolTarget = patrolPointA;
+
+        UpdateStateDisplay();
     }
 
     private void Update()
     {
-        if (GameManager.Instance != null && GameManager.Instance.GameOver)
+        // Stop FSM once game has ended.
+        if (GameManager.Instance != null &&
+            GameManager.Instance.GameOver)
+        {
             return;
+        }
 
         if (player == null)
             return;
@@ -53,55 +84,121 @@ public class FSMEnemyController : MonoBehaviour
         UpdateState();
 
         moveTimer += Time.deltaTime;
+
         if (moveTimer >= moveInterval)
         {
             moveTimer = 0f;
+
             ExecuteCurrentState();
         }
+
+        UpdateStateDisplay();
     }
+
+   
+    // STATE TRANSITION LOGIC
+    
 
     private void UpdateState()
     {
-        int distanceToPlayer = ManhattanDistance(
-            mover.GridPosition,
-            player.GridPosition);
+        int distanceToPlayer =
+            ManhattanDistance(
+                mover.GridPosition,
+                player.GridPosition
+            );
 
-        EnemyState nextState =
-            distanceToPlayer <= chaseDistance
-            ? EnemyState.Chase
-            : EnemyState.Patrol;
-
-        if (nextState != currentState)
+        switch (currentState)
         {
-            EnemyState previousState = currentState;
-            currentState = nextState;
+            case EnemyState.Patrol:
 
-            if (showDebugLogs)
-            {
-                Debug.Log(
-                    $"FSM: {previousState} -> {currentState}. " +
-                    $"Player distance = {distanceToPlayer}");
-            }
+                // PATROL -> CHASE
+                if (distanceToPlayer <= chaseDistance)
+                {
+                    lastKnownPlayerPosition =
+                        player.GridPosition;
+
+                    ChangeState(EnemyState.Chase);
+                }
+
+                break;
+
+
+            case EnemyState.Chase:
+
+                // Player still visible/in range.
+                if (distanceToPlayer <= chaseDistance)
+                {
+                    // Keep updating the last known position.
+                    lastKnownPlayerPosition =
+                        player.GridPosition;
+                }
+
+                // CHASE -> SEARCH
+                else
+                {
+                    searchTimer = 0f;
+
+                    ChangeState(EnemyState.Search);
+                }
+
+                break;
+
+
+            case EnemyState.Search:
+
+                // SEARCH -> CHASE
+                // Player enters detection range again.
+                if (distanceToPlayer <= chaseDistance)
+                {
+                    lastKnownPlayerPosition =
+                        player.GridPosition;
+
+                    ChangeState(EnemyState.Chase);
+                }
+
+                break;
         }
     }
+
+    
+    // EXECUTE CURRENT STATE
+    
 
     private void ExecuteCurrentState()
     {
         switch (currentState)
         {
             case EnemyState.Patrol:
+
                 Patrol();
+
                 break;
 
+
             case EnemyState.Chase:
+
                 Chase();
+
+                break;
+
+
+            case EnemyState.Search:
+
+                Search();
+
                 break;
         }
     }
 
+    
+    // PATROL
+
     private void Patrol()
     {
-        if (mover.GridPosition == currentPatrolTarget)
+        // If enemy reaches current patrol point,
+        // switch to the other patrol point.
+        if (mover.GridPosition ==
+            currentPatrolTarget)
         {
             currentPatrolTarget =
                 currentPatrolTarget == patrolPointA
@@ -109,43 +206,135 @@ public class FSMEnemyController : MonoBehaviour
                 : patrolPointA;
 
             if (showDebugLogs)
-                Debug.Log($"FSM Patrol: new target = {currentPatrolTarget}");
+            {
+                Debug.Log(
+                    $"FSM PATROL: new target = " +
+                    $"{currentPatrolTarget}"
+                );
+            }
         }
 
         MoveOneStepTowards(currentPatrolTarget);
     }
 
+    
+    // CHASE
+    
+
     private void Chase()
     {
-        MoveOneStepTowards(player.GridPosition);
+        // Continuously chase the player's
+        // current grid location.
+        lastKnownPlayerPosition =
+            player.GridPosition;
+
+        MoveOneStepTowards(
+            player.GridPosition
+        );
     }
 
-    private void MoveOneStepTowards(Vector2Int target)
-    {
-        Vector2Int current = mover.GridPosition;
-        Vector2Int difference = target - current;
+    
+    // SEARCH
+    
 
-        // This skeleton deliberately keeps navigation simple.
-        // A later/full version can request an A* path instead.
+    private void Search()
+    {
+        // Move to where the player was last seen.
+        if (mover.GridPosition !=
+            lastKnownPlayerPosition)
+        {
+            MoveOneStepTowards(
+                lastKnownPlayerPosition
+            );
+
+            return;
+        }
+
+        // Enemy reached the last-known position
+        // but player is not there.
+        searchTimer += moveInterval;
+
+        if (showDebugLogs)
+        {
+            Debug.Log(
+                $"FSM SEARCH: checking last known " +
+                $"position {lastKnownPlayerPosition}"
+            );
+        }
+
+        // SEARCH -> PATROL after waiting.
+        if (searchTimer >= searchDuration)
+        {
+            searchTimer = 0f;
+
+            ChangeState(EnemyState.Patrol);
+        }
+    }
+
+    
+    // CHANGE STATE
+    
+
+    private void ChangeState(
+        EnemyState newState)
+    {
+        if (newState == currentState)
+            return;
+
+        EnemyState previousState =
+            currentState;
+
+        currentState = newState;
+
+        if (showDebugLogs)
+        {
+            Debug.Log(
+                $"FSM: {previousState} -> " +
+                $"{currentState}"
+            );
+        }
+
+        UpdateStateDisplay();
+    }
+
+    
+    // MOVEMENT
+    
+
+    private void MoveOneStepTowards(
+        Vector2Int target)
+    {
+        Vector2Int current =
+            mover.GridPosition;
+
+        Vector2Int difference =
+            target - current;
+
+        // Try horizontal movement first.
         if (difference.x != 0)
         {
             Direction horizontal =
-                difference.x > 0 ? Direction.Right : Direction.Left;
+                difference.x > 0
+                ? Direction.Right
+                : Direction.Left;
 
             if (mover.TryMove(horizontal))
                 return;
         }
 
+        // Then try vertical movement.
         if (difference.y != 0)
         {
             Direction vertical =
-                difference.y > 0 ? Direction.Up : Direction.Down;
+                difference.y > 0
+                ? Direction.Up
+                : Direction.Down;
 
             if (mover.TryMove(vertical))
                 return;
         }
 
-        // If the preferred direction was blocked, try safe alternatives.
+        // Preferred direction was blocked.
         TryFallbackMove();
     }
 
@@ -159,32 +348,79 @@ public class FSMEnemyController : MonoBehaviour
             Direction.Right
         };
 
-        foreach (Direction dir in alternatives)
+        foreach (Direction direction
+                 in alternatives)
         {
-            if (mover.TryMove(dir))
+            if (mover.TryMove(direction))
                 return;
         }
 
         if (showDebugLogs)
-            Debug.Log("FSM: Enemy has no valid move.");
+        {
+            Debug.Log(
+                "FSM: Enemy has no valid move."
+            );
+        }
     }
 
-    private int ManhattanDistance(Vector2Int a, Vector2Int b)
+   
+    // DISTANCE
+
+
+    private int ManhattanDistance(
+        Vector2Int a,
+        Vector2Int b)
     {
-        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+        return Mathf.Abs(a.x - b.x) +
+               Mathf.Abs(a.y - b.y);
     }
+
+    
+    // TEACHING / DEBUG DISPLAY
+
+
+    private void UpdateStateDisplay()
+    {
+        if (stateText != null)
+        {
+            stateText.text =
+                $"FSM State: {currentState}";
+        }
+    }
+
+    // SCENE DEBUGGING
+   
 
     private void OnDrawGizmosSelected()
     {
         if (GridSystem.Instance == null)
             return;
 
+        // Patrol Point A
         Gizmos.DrawWireSphere(
-            GridSystem.Instance.GridToWorld(patrolPointA),
-            0.2f);
+            GridSystem.Instance.GridToWorld(
+                patrolPointA
+            ),
+            0.2f
+        );
 
+        // Patrol Point B
         Gizmos.DrawWireSphere(
-            GridSystem.Instance.GridToWorld(patrolPointB),
-            0.2f);
+            GridSystem.Instance.GridToWorld(
+                patrolPointB
+            ),
+            0.2f
+        );
+
+        // Last known player position
+        if (Application.isPlaying)
+        {
+            Gizmos.DrawWireCube(
+                GridSystem.Instance.GridToWorld(
+                    lastKnownPlayerPosition
+                ),
+                Vector3.one * 0.35f
+            );
+        }
     }
 }
