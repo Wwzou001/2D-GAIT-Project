@@ -2727,7 +2727,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0870597ad7dc4234985f0344ea2d2243, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AStarDemoController
-  goal: {x: 4, y: 0}
+  player: {fileID: 1561357133}
   stepDelay: 0.25
   showPath: 1
   pathLineWidth: 0.08

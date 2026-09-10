@@ -4,236 +4,189 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
 
-/// <summary>
-/// A* demonstration controller.
-///
-/// Press P to:
-/// 1. Calculate a path
-/// 2. Visualise the final path
-/// 3. Display debug statistics
-/// 4. Move the agent along the path
-/// </summary>
-
 [RequireComponent(typeof(GridMover))]
 public class AStarDemoController : MonoBehaviour
 {
-    [Header("A* Demo")]
+    [Header("Target")]
+    [SerializeField] private GridMover player;
 
-    [SerializeField]
-    private Vector2Int goal =
-        new Vector2Int(4, 4);
+    [Header("Movement")]
+    [SerializeField] private float stepDelay = 0.25f;
 
-    [SerializeField]
-    private float stepDelay =
-        0.25f;
-
-
-    [Header("Path Visualisation")]
-
-    [SerializeField]
-    private bool showPath =
-        true;
-
-    [SerializeField]
-    private float pathLineWidth =
-        0.08f;
-
-
-    [Header("Teaching / Debug UI")]
-
-    // Optional TMP text.
-    [SerializeField]
-    private TMP_Text debugText;
-
+    [Header("Visualisation")]
+    [SerializeField] private bool showPath = true;
+    [SerializeField] private float pathLineWidth = 0.08f;
+    [SerializeField] private TMP_Text debugText;
 
     private GridMover mover;
-
-    private List<Vector2Int>
-        currentPath =
-            new List<Vector2Int>();
-
-    private bool followingPath;
-
-    private int exploredNodes;
-
     private LineRenderer lineRenderer;
 
-
-     
-    // INITIALISE
-     
+    private List<Vector2Int> currentPath;
+    private bool isFollowingPath = false;
 
     private void Awake()
     {
-        mover =
-            GetComponent<GridMover>();
+        mover = GetComponent<GridMover>();
 
         SetupLineRenderer();
     }
 
-     
-    // INPUT
-     
-
     private void Update()
     {
         if (Keyboard.current != null &&
-            Keyboard.current.pKey
-                .wasPressedThisFrame &&
-            !followingPath)
+            Keyboard.current.pKey.wasPressedThisFrame &&
+            !isFollowingPath)
         {
             CalculateAndFollowPath();
         }
     }
 
-     
-    // CALCULATE PATH
-     
-
-    public void CalculateAndFollowPath()
+    private void CalculateAndFollowPath()
     {
-        Vector2Int start =
-            mover.GridPosition;
-
-        currentPath =
-            AStarPathfinder.FindPath(
-                start,
-                goal,
-                out exploredNodes
-            );
-
-        if (currentPath == null ||
-            currentPath.Count == 0)
+        // Make sure the player has been assigned
+        if (player == null)
         {
             Debug.LogWarning(
-                "A* Demo: No path available."
+                "AStarDemoController: Player has not been assigned."
             );
 
-            UpdateDebugText(
-                start,
-                false
+            return;
+        }
+
+        // Ghost's current grid position
+        Vector2Int start = mover.GridPosition;
+
+        // Player's current grid position becomes the A* goal
+        Vector2Int goal = player.GridPosition;
+
+        int exploredNodes;
+
+        // AStarPathfinder is static, so call it directly
+        currentPath = AStarPathfinder.FindPath(
+            start,
+            goal,
+            out exploredNodes
+        );
+
+        // No valid path found
+        if (currentPath == null || currentPath.Count == 0)
+        {
+            Debug.Log(
+                $"A*: No path found from {start} to player at {goal}."
             );
 
-            ClearPathVisual();
+            if (debugText != null)
+            {
+                debugText.text =
+                    $"A* PATHFINDING\n" +
+                    $"Start: {start}\n" +
+                    $"Player: {goal}\n" +
+                    $"No path found\n" +
+                    $"Nodes Explored: {exploredNodes}";
+            }
+
+            ClearPathLine();
 
             return;
         }
 
         Debug.Log(
-            $"A* DEMO\n" +
-            $"Start: {start}\n" +
-            $"Goal: {goal}\n" +
-            $"Path length: " +
-            $"{currentPath.Count}\n" +
-            $"Nodes explored: " +
-            $"{exploredNodes}"
+            $"A*: Path found from {start} to player at {goal}. " +
+            $"Path Length: {currentPath.Count}, " +
+            $"Nodes Explored: {exploredNodes}"
         );
 
-        UpdateDebugText(
-            start,
-            true
-        );
+        // Update the teaching/debug text
+        if (debugText != null)
+        {
+            debugText.text =
+                $"A* PATHFINDING\n" +
+                $"Start: {start}\n" +
+                $"Target Player: {goal}\n" +
+                $"Path Length: {currentPath.Count}\n" +
+                $"Nodes Explored: {exploredNodes}";
+        }
 
-        DrawPath(
-            start
-        );
+        // Draw the calculated path
+        if (showPath)
+        {
+            DrawPath(currentPath);
+        }
+        else
+        {
+            ClearPathLine();
+        }
 
-        StopAllCoroutines();
-
+        // Move the ghost along the path
         StartCoroutine(
-            FollowPath()
+            FollowPath(currentPath)
         );
     }
 
-     
-    // FOLLOW PATH
-     
-
-    private IEnumerator FollowPath()
+    private IEnumerator FollowPath(
+        List<Vector2Int> path
+    )
     {
-        followingPath = true;
+        isFollowingPath = true;
 
-        foreach (
-            Vector2Int nextCell
-            in currentPath)
+        foreach (Vector2Int nextPosition in path)
         {
+            yield return new WaitForSeconds(stepDelay);
+
+            // Stop if the game has ended
             if (GameManager.Instance != null &&
                 GameManager.Instance.GameOver)
             {
                 break;
             }
 
-            // Save old position BEFORE moving.
-            Vector2Int previousPosition =
+            Vector2Int currentPosition =
                 mover.GridPosition;
 
-            Direction direction =
-                DirectionFromTo(
-                    previousPosition,
-                    nextCell
-                );
+            Vector2Int difference =
+                nextPosition - currentPosition;
 
-            bool moved =
-                mover.TryMove(
-                    direction
-                );
+            Direction direction;
 
-            Debug.Log(
-                $"A* STEP: " +
-                $"{previousPosition} -> " +
-                $"{nextCell}, " +
-                $"Moved = {moved}"
-            );
-
-            if (!moved)
+            // Work out which direction the ghost
+            // needs to move to reach the next A* node
+            if (difference.x > 0)
             {
-                Debug.LogWarning(
-                    "A* Demo: Path became " +
-                    "blocked. Recalculate path."
-                );
-
-                break;
+                direction = Direction.Right;
+            }
+            else if (difference.x < 0)
+            {
+                direction = Direction.Left;
+            }
+            else if (difference.y > 0)
+            {
+                direction = Direction.Up;
+            }
+            else if (difference.y < 0)
+            {
+                direction = Direction.Down;
+            }
+            else
+            {
+                // Already on this position
+                continue;
             }
 
-            yield return
-                new WaitForSeconds(
-                    stepDelay
-                );
+            Debug.Log(
+                $"A*: Moving from {currentPosition} " +
+                $"to {nextPosition}"
+            );
+
+            mover.TryMove(direction);
         }
 
-        followingPath = false;
+        isFollowingPath = false;
 
         Debug.Log(
-            "A* Demo: movement complete."
+            $"A*: Finished path. " +
+            $"Ghost position = {mover.GridPosition}"
         );
     }
-
-     
-    // CONVERT PATH STEP TO GRIDMOVER DIRECTION
-     
-
-    private Direction DirectionFromTo(
-        Vector2Int from,
-        Vector2Int to)
-    {
-        Vector2Int delta =
-            to - from;
-
-        if (delta == Vector2Int.up)
-            return Direction.Up;
-
-        if (delta == Vector2Int.down)
-            return Direction.Down;
-
-        if (delta == Vector2Int.left)
-            return Direction.Left;
-
-        return Direction.Right;
-    }
-
-     
-    // LINE RENDERER SETUP
-     
 
     private void SetupLineRenderer()
     {
@@ -243,11 +196,17 @@ public class AStarDemoController : MonoBehaviour
         if (lineRenderer == null)
         {
             lineRenderer =
-                gameObject.AddComponent
-                    <LineRenderer>();
+                gameObject.AddComponent<LineRenderer>();
         }
 
-        lineRenderer.positionCount = 0;
+        Shader spriteShader =
+            Shader.Find("Sprites/Default");
+
+        if (spriteShader != null)
+        {
+            lineRenderer.material =
+                new Material(spriteShader);
+        }
 
         lineRenderer.startWidth =
             pathLineWidth;
@@ -255,68 +214,43 @@ public class AStarDemoController : MonoBehaviour
         lineRenderer.endWidth =
             pathLineWidth;
 
-        lineRenderer.useWorldSpace =
-            true;
+        lineRenderer.positionCount = 0;
 
-        lineRenderer.sortingOrder =
-            5;
-
-        // Create a basic material automatically.
-        if (lineRenderer.material == null)
-        {
-            Shader shader =
-                Shader.Find(
-                    "Sprites/Default"
-                );
-
-            if (shader != null)
-            {
-                lineRenderer.material =
-                    new Material(shader);
-            }
-        }
+        // Keep the path above most sprites
+        lineRenderer.sortingOrder = 5;
     }
 
-     
-    // DRAW FINAL PATH IN GAME VIEW
-     
-
     private void DrawPath(
-        Vector2Int start)
+        List<Vector2Int> path
+    )
     {
-        if (!showPath ||
-            lineRenderer == null)
+        if (lineRenderer == null ||
+            GridSystem.Instance == null)
         {
             return;
         }
 
-        // +1 because path does not include start.
+        // +1 because we also include
+        // the ghost's starting position
         lineRenderer.positionCount =
-            currentPath.Count + 1;
+            path.Count + 1;
 
         Vector3 startWorld =
-            GridSystem.Instance
-                .GridToWorld(start);
-
-        // Slightly in front of the grid.
-        startWorld.z = -0.1f;
+            GridSystem.Instance.GridToWorld(
+                mover.GridPosition
+            );
 
         lineRenderer.SetPosition(
             0,
             startWorld
         );
 
-        for (int i = 0;
-             i < currentPath.Count;
-             i++)
+        for (int i = 0; i < path.Count; i++)
         {
             Vector3 worldPosition =
-                GridSystem.Instance
-                    .GridToWorld(
-                        currentPath[i]
-                    );
-
-            worldPosition.z = -0.1f;
+                GridSystem.Instance.GridToWorld(
+                    path[i]
+                );
 
             lineRenderer.SetPosition(
                 i + 1,
@@ -325,87 +259,11 @@ public class AStarDemoController : MonoBehaviour
         }
     }
 
-    private void ClearPathVisual()
+    private void ClearPathLine()
     {
         if (lineRenderer != null)
         {
-            lineRenderer.positionCount =
-                0;
-        }
-    }
-
-     
-    // DEBUG UI
-     
-
-    private void UpdateDebugText(
-        Vector2Int start,
-        bool pathFound)
-    {
-        if (debugText == null)
-            return;
-
-        if (pathFound)
-        {
-            debugText.text =
-                "A* PATHFINDING\n" +
-                $"Start: {start}\n" +
-                $"Goal: {goal}\n" +
-                $"Path Length: " +
-                $"{currentPath.Count}\n" +
-                $"Nodes Explored: " +
-                $"{exploredNodes}";
-        }
-        else
-        {
-            debugText.text =
-                "A* PATHFINDING\n" +
-                $"Start: {start}\n" +
-                $"Goal: {goal}\n" +
-                "No valid path found.";
-        }
-    }
-
-     
-    // SCENE VIEW GIZMOS
-     
-
-    private void OnDrawGizmos()
-    {
-        if (currentPath == null ||
-            GridSystem.Instance == null)
-        {
-            return;
-        }
-
-        for (int i = 0;
-             i < currentPath.Count;
-             i++)
-        {
-            Vector3 world =
-                GridSystem.Instance
-                    .GridToWorld(
-                        currentPath[i]
-                    );
-
-            Gizmos.DrawWireSphere(
-                world,
-                0.15f
-            );
-
-            if (i > 0)
-            {
-                Vector3 previous =
-                    GridSystem.Instance
-                        .GridToWorld(
-                            currentPath[i - 1]
-                        );
-
-                Gizmos.DrawLine(
-                    previous,
-                    world
-                );
-            }
+            lineRenderer.positionCount = 0;
         }
     }
 }

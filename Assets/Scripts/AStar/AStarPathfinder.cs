@@ -1,19 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// A* pathfinding implementation for the existing GridSystem.
-///
-/// Supports:
-/// - 4-directional grid movement
-/// - obstacle avoidance
-/// - Manhattan-distance heuristic
-/// - path reconstruction
-/// - explored-node count for teaching/debugging
-/// </summary>
-
 public static class AStarPathfinder
 {
+    // Represents one grid cell during the A* search
     private class Node
     {
         public Vector2Int Position;
@@ -21,52 +11,55 @@ public static class AStarPathfinder
         public Node Parent;
 
         public int GCost;
-
         public int HCost;
 
-        public int FCost =>
-            GCost + HCost;
+        public int FCost
+        {
+            get
+            {
+                return GCost + HCost;
+            }
+        }
 
         public Node(
-            Vector2Int position)
+            Vector2Int position,
+            Node parent,
+            int gCost,
+            int hCost
+        )
         {
             Position = position;
-
-            // Start high so a cheaper path
-            // can replace it.
-            GCost = int.MaxValue;
+            Parent = parent;
+            GCost = gCost;
+            HCost = hCost;
         }
     }
 
-     
-    // SIMPLE VERSION
-     
-
-    // Keeps compatibility with old code.
+    // Old version kept for compatibility
     public static List<Vector2Int> FindPath(
         Vector2Int start,
-        Vector2Int goal)
+        Vector2Int goal
+    )
     {
-        int ignoredExploredCount;
+        int exploredNodes;
 
         return FindPath(
             start,
             goal,
-            out ignoredExploredCount
+            out exploredNodes
         );
     }
 
-     
-    // VERSION WITH DEBUG INFORMATION
-     
-
+    // Main A* pathfinding method
     public static List<Vector2Int> FindPath(
         Vector2Int start,
         Vector2Int goal,
-        out int exploredNodes)
+        out int exploredNodes
+    )
     {
         exploredNodes = 0;
 
+        // Make sure GridSystem exists
         if (GridSystem.Instance == null)
         {
             Debug.LogError(
@@ -76,25 +69,44 @@ public static class AStarPathfinder
             return null;
         }
 
-        // Validate positions.
-        if (!GridSystem.Instance.IsInBounds(start) ||
-            !GridSystem.Instance.IsInBounds(goal))
+        // Check that start is inside the grid
+        if (!GridSystem.Instance.IsInBounds(start))
         {
             Debug.LogWarning(
-                "A*: Start or goal is outside the grid."
+                $"A*: Start position {start} is outside the grid."
             );
 
             return null;
         }
 
-        // Goal cannot be an obstacle.
-        if (GridSystem.Instance.IsObstacle(goal))
+        // Check that goal is inside the grid
+        if (!GridSystem.Instance.IsInBounds(goal))
         {
             Debug.LogWarning(
-                "A*: Goal is inside an obstacle."
+                $"A*: Goal position {goal} is outside the grid."
             );
 
             return null;
+        }
+
+        // Goal cannot be an obstacle
+        if (GridSystem.Instance.IsObstacle(goal))
+        {
+            Debug.LogWarning(
+                $"A*: Goal position {goal} is blocked by an obstacle."
+            );
+
+            return null;
+        }
+
+        // If already at the goal
+        if (start == goal)
+        {
+            Debug.Log(
+                "A*: Start and goal are the same position."
+            );
+
+            return new List<Vector2Int>();
         }
 
         List<Node> openList =
@@ -103,171 +115,152 @@ public static class AStarPathfinder
         HashSet<Vector2Int> closedSet =
             new HashSet<Vector2Int>();
 
-        Dictionary<Vector2Int, Node> nodes =
-            new Dictionary<Vector2Int, Node>();
-
         Node startNode =
-            GetOrCreateNode(
-                nodes,
-                start
-            );
-
-        startNode.GCost = 0;
-
-        startNode.HCost =
-            Heuristic(
+            new Node(
                 start,
-                goal
+                null,
+                0,
+                ManhattanDistance(start, goal)
             );
 
         openList.Add(startNode);
 
-        
-        // MAIN A* LOOP
-       
-
         while (openList.Count > 0)
         {
-            Node current =
-                GetLowestCostNode(
-                    openList
-                );
+            // Find the node with the lowest F cost
+            Node currentNode =
+                GetLowestCostNode(openList);
+
+            openList.Remove(currentNode);
+
+            // Skip if already explored
+            if (closedSet.Contains(
+                currentNode.Position
+            ))
+            {
+                continue;
+            }
+
+            closedSet.Add(
+                currentNode.Position
+            );
 
             exploredNodes++;
 
-            // Goal reached.
-            if (current.Position == goal)
+            Debug.Log(
+                $"A*: Exploring {currentNode.Position} | " +
+                $"G={currentNode.GCost}, " +
+                $"H={currentNode.HCost}, " +
+                $"F={currentNode.FCost}"
+            );
+
+            // Goal reached
+            if (currentNode.Position == goal)
             {
                 List<Vector2Int> path =
-                    ReconstructPath(
-                        current
-                    );
+                    ReconstructPath(currentNode);
 
                 Debug.Log(
-                    $"A*: Path found from " +
-                    $"{start} to {goal}. " +
-                    $"Path length = {path.Count}, " +
-                    $"Nodes explored = {exploredNodes}"
+                    $"A*: Path found from {start} to {goal}. " +
+                    $"Path Length = {path.Count}, " +
+                    $"Nodes Explored = {exploredNodes}"
                 );
 
                 return path;
             }
 
-            openList.Remove(current);
-
-            closedSet.Add(
-                current.Position
-            );
-
-            // Explore neighbours.
+            // Check all four neighbouring cells
             foreach (
                 Vector2Int neighbourPosition
                 in GetNeighbours(
-                    current.Position
-                ))
+                    currentNode.Position
+                )
+            )
             {
-                // Already processed.
+                // Ignore cells outside the grid
+                if (!GridSystem.Instance.IsInBounds(
+                    neighbourPosition
+                ))
+                {
+                    continue;
+                }
+
+                // Ignore obstacle cells
+                if (GridSystem.Instance.IsObstacle(
+                    neighbourPosition
+                ))
+                {
+                    continue;
+                }
+
+                // Ignore cells already fully explored
                 if (closedSet.Contains(
-                    neighbourPosition))
+                    neighbourPosition
+                ))
                 {
                     continue;
                 }
 
-                // Outside grid.
-                if (!GridSystem.Instance
-                    .IsInBounds(
-                        neighbourPosition))
-                {
-                    continue;
-                }
+                int newGCost =
+                    currentNode.GCost + 1;
 
-                // Blocked cell.
-                if (GridSystem.Instance
-                    .IsObstacle(
-                        neighbourPosition))
-                {
-                    continue;
-                }
+                int newHCost =
+                    ManhattanDistance(
+                        neighbourPosition,
+                        goal
+                    );
 
-                Node neighbour =
-                    GetOrCreateNode(
-                        nodes,
+                Node existingNode =
+                    FindNodeInOpenList(
+                        openList,
                         neighbourPosition
                     );
 
-                int tentativeG =
-                    current.GCost + 1;
-
-                bool isNewNode =
-                    !openList.Contains(
-                        neighbour
-                    );
-
-                if (isNewNode ||
-                    tentativeG <
-                    neighbour.GCost)
+                // If node has not yet been discovered
+                if (existingNode == null)
                 {
-                    neighbour.Parent =
-                        current;
-
-                    neighbour.GCost =
-                        tentativeG;
-
-                    neighbour.HCost =
-                        Heuristic(
+                    Node neighbourNode =
+                        new Node(
                             neighbourPosition,
-                            goal
+                            currentNode,
+                            newGCost,
+                            newHCost
                         );
 
-                    if (isNewNode)
+                    openList.Add(
+                        neighbourNode
+                    );
+                }
+                else
+                {
+                    // Better route to an already discovered node
+                    if (newGCost <
+                        existingNode.GCost)
                     {
-                        openList.Add(
-                            neighbour
-                        );
+                        existingNode.GCost =
+                            newGCost;
+
+                        existingNode.Parent =
+                            currentNode;
                     }
                 }
             }
         }
 
         Debug.LogWarning(
-            $"A*: No path found from " +
-            $"{start} to {goal}. " +
-            $"Nodes explored = {exploredNodes}"
+            $"A*: No path found from {start} to {goal}. " +
+            $"Nodes Explored = {exploredNodes}"
         );
 
         return null;
     }
 
-     
-    // NODE CREATION
-     
-
-    private static Node GetOrCreateNode(
-        Dictionary<Vector2Int, Node> nodes,
-        Vector2Int position)
-    {
-        if (!nodes.TryGetValue(
-            position,
-            out Node node))
-        {
-            node =
-                new Node(position);
-
-            nodes[position] =
-                node;
-        }
-
-        return node;
-    }
-
-     
-    // LOWEST F COST
-     
-
+    // Returns the node with the lowest F cost
     private static Node GetLowestCostNode(
-        List<Node> openList)
+        List<Node> openList
+    )
     {
-        Node best =
+        Node bestNode =
             openList[0];
 
         for (int i = 1;
@@ -277,85 +270,106 @@ public static class AStarPathfinder
             Node candidate =
                 openList[i];
 
-            // Prefer lowest F.
-            // If equal, prefer lower H.
+            // Lower F cost is better
             if (candidate.FCost <
-                    best.FCost ||
-                (candidate.FCost ==
-                    best.FCost &&
-                 candidate.HCost <
-                    best.HCost))
+                bestNode.FCost)
             {
-                best =
-                    candidate;
+                bestNode = candidate;
+            }
+
+            // If F costs are equal,
+            // prefer lower H cost
+            else if (
+                candidate.FCost ==
+                bestNode.FCost &&
+                candidate.HCost <
+                bestNode.HCost
+            )
+            {
+                bestNode = candidate;
             }
         }
 
-        return best;
+        return bestNode;
     }
 
-     
-    // HEURISTIC
-     
+    // Search for an existing node
+    // in the open list
+    private static Node FindNodeInOpenList(
+        List<Node> openList,
+        Vector2Int position
+    )
+    {
+        foreach (Node node in openList)
+        {
+            if (node.Position == position)
+            {
+                return node;
+            }
+        }
 
-    private static int Heuristic(
+        return null;
+    }
+
+    // Get neighbouring cells:
+    // Up, Down, Left, Right
+    private static List<Vector2Int> GetNeighbours(
+        Vector2Int position
+    )
+    {
+        return new List<Vector2Int>
+        {
+            position + Vector2Int.up,
+            position + Vector2Int.down,
+            position + Vector2Int.left,
+            position + Vector2Int.right
+        };
+    }
+
+    // Manhattan distance is appropriate
+    // for a 4-direction grid
+    private static int ManhattanDistance(
         Vector2Int a,
-        Vector2Int b)
+        Vector2Int b
+    )
     {
-        // Manhattan distance because
-        // movement is only:
-        // Up / Down / Left / Right.
-
-        return Mathf.Abs(a.x - b.x) +
-               Mathf.Abs(a.y - b.y);
+        return
+            Mathf.Abs(a.x - b.x) +
+            Mathf.Abs(a.y - b.y);
     }
 
-     
-    // NEIGHBOURS
-     
-
-    private static IEnumerable<Vector2Int>
-        GetNeighbours(
-            Vector2Int position)
-    {
-        yield return
-            position + Vector2Int.up;
-
-        yield return
-            position + Vector2Int.down;
-
-        yield return
-            position + Vector2Int.left;
-
-        yield return
-            position + Vector2Int.right;
-    }
-
-   
-    // BUILD FINAL PATH
-    
-
-    private static List<Vector2Int>
-        ReconstructPath(
-            Node goalNode)
+    // Build final path by following
+    // parent nodes backwards
+    private static List<Vector2Int> ReconstructPath(
+        Node goalNode
+    )
     {
         List<Vector2Int> path =
             new List<Vector2Int>();
 
-        Node current =
+        Node currentNode =
             goalNode;
 
-        while (current.Parent != null)
+        while (
+            currentNode != null &&
+            currentNode.Parent != null
+        )
         {
             path.Add(
-                current.Position
+                currentNode.Position
             );
 
-            current =
-                current.Parent;
+            currentNode =
+                currentNode.Parent;
         }
 
+        // Currently:
+        // Goal -> ... -> Start
+
         path.Reverse();
+
+        // Final result:
+        // Start's next cell -> ... -> Goal
 
         return path;
     }
