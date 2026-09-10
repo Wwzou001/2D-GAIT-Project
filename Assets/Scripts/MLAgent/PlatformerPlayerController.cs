@@ -42,6 +42,12 @@ public class PlatformerPlayerController : MonoBehaviour
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
         MoveHorizontal(horizontalInput);
+
+        if (rb.linearVelocity.y > jumpForce)
+        {
+            Debug.Log($"Clamping velocity from {rb.linearVelocity.y} to {jumpForce}");
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+        }
     }
 
     // Full air control, no momentum penalty
@@ -54,6 +60,7 @@ public class PlatformerPlayerController : MonoBehaviour
     public void TryJump()
     {
         if (!isGrounded) return;
+        if (rb.linearVelocity.y > 0.1f) return;
 
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
     }

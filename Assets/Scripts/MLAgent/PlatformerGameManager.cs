@@ -7,10 +7,13 @@ public class PlatformerGameManager : MonoBehaviour
 
     [SerializeField] private GameObject endPanel;
     [SerializeField] private TMPro.TMP_Text resultText;
+    [SerializeField] private TMPro.TMP_Text coinCounterText;
 
     private bool levelOver = false;
+    private int coinsCollected = 0;
 
     public bool LevelOver => levelOver;
+    public int CoinsCollected => coinsCollected;
 
     private void Awake()
     {
@@ -19,6 +22,27 @@ public class PlatformerGameManager : MonoBehaviour
         if (endPanel != null)
         {
             endPanel.SetActive(false);
+        }
+    }
+
+    private void Start()
+    {
+        UpdateCoinCounter();
+    }
+
+    public void CollectCoin(int value)
+    {
+        if (levelOver) return;
+
+        coinsCollected += value;
+        UpdateCoinCounter();
+    }
+
+    private void UpdateCoinCounter()
+    {
+        if (coinCounterText != null)
+        {
+            coinCounterText.text = $"Coins: {coinsCollected}";
         }
     }
 
@@ -65,6 +89,7 @@ public class PlatformerGameManager : MonoBehaviour
     public void RestartLevel()
     {
         levelOver = false;
+        coinsCollected = 0;
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
