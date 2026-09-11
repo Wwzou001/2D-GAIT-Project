@@ -30,7 +30,7 @@ public class MCSAgent
         this.isHunter = isHunter;
     }
 
-    public Direction ChooseMove(Vector2Int selfPos, Vector2Int opponentPos, out string log)
+    public Direction ChooseMove(Vector2Int selfPos, Vector2Int opponentPos,bool opponentHasBuff, out string log)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -80,7 +80,7 @@ public class MCSAgent
         foreach (Direction move in legalMoves)
         {
             Vector2Int nextPos = selfPos + Offset(move);
-            float score = AverageRolloutScore(nextPos, opponentPos);
+            float score = AverageRolloutScore(nextPos, opponentPos, opponentHasBuff);
             log += $"  {move}: avg score {score:F2}\n";
 
             if (score > bestScore)
@@ -97,19 +97,19 @@ public class MCSAgent
         return bestMove;
     }
 
-    private float AverageRolloutScore(Vector2Int startSelfPos, Vector2Int startOpponentPos)
+    private float AverageRolloutScore(Vector2Int startSelfPos, Vector2Int startOpponentPos, bool opponentHasBuff)
     {
         float total = 0f;
         for (int i = 0; i < simulationsPerMove; i++)
         {
-            total += RandomRollout(startSelfPos, startOpponentPos);
+            total += RandomRollout(startSelfPos, startOpponentPos, opponentHasBuff);
         }
         return total / simulationsPerMove;
     }
 
     // Plays forward randomly and scores the outcome.
     // Catching the player = best result. Otherwise, ending up closer is better.
-    private float RandomRollout(Vector2Int selfPos, Vector2Int opponentPos)
+    private float RandomRollout(Vector2Int selfPos, Vector2Int opponentPos, bool opponentHasBuff)
     {
         var state = new MctsState(selfPos, opponentPos);
         float coinPickUpBonus = 0f;
@@ -139,6 +139,17 @@ public class MCSAgent
                 return isHunter ? 1f : (-1f + coinPickUpBonus); // caught = great for hunter, terrible for collector
 
             state.PlayerPos = GreedyOrRandomStep(state.PlayerPos, state.EnemyPos, !isHunter); // rough guess at player behaviour
+
+            if (opponentHasBuff)
+            {
+                state.PlayerPos = GreedyOrRandomStep(state.PlayerPos, state.EnemyPos, !isHunter);
+            }
+
+            // Symmetric check: the opponent's own move or second move when buffed might have landed it directly on self
+            if (state.EnemyCaughtPlayer())
+            {
+                return isHunter ? 1f : (-1f + coinPickUpBonus);
+            }
         }
 
         int distanceToOpponent = Mathf.Abs(state.EnemyPos.x - state.PlayerPos.x) + Mathf.Abs(state.EnemyPos.y - state.PlayerPos.y);

@@ -95,13 +95,21 @@ public class MctsEnemyController : MonoBehaviour
         Direction move;
         string log;
 
+        // Read opponent's current buff state each decision
+        bool opponentHasBuff = playerMover.HasFountainBuff;
+
+        if (opponentHasBuff)
+        {
+            Debug.Log($"[BUFF CHECK] {mySlot} sees opponent has fountain buff this turn!");
+        }
+
         if (algorithm == AlgorithmType.MCS)
         {
-            move = mcsAgent.ChooseMove(enemyMover.GridPosition, playerMover.GridPosition, out log);
+            move = mcsAgent.ChooseMove(enemyMover.GridPosition, playerMover.GridPosition,opponentHasBuff, out log);
         }
         else
         {
-            move = mctsAgent.ChooseMove(enemyMover.GridPosition, playerMover.GridPosition, out log);
+            move = mctsAgent.ChooseMove(enemyMover.GridPosition, playerMover.GridPosition,opponentHasBuff, out log);
         }
 
         if (logDecisions)

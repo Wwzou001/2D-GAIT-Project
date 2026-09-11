@@ -42,7 +42,7 @@ public class MCTSAgent
         public float AverageScore => Visits == 0 ? 0f : TotalScore / Visits;
     }
 
-    public Direction ChooseMove(Vector2Int selfPos, Vector2Int opponentPos, out string log)
+    public Direction ChooseMove(Vector2Int selfPos, Vector2Int opponentPos,bool opponentHasBuff, out string log)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -95,8 +95,8 @@ public class MCTSAgent
         for (int i = 0; i < iterations; i++)
         {
             Node node = Select(root);
-            node = Expand(node);
-            float result = Simulate(node.State);
+            node = Expand(node, opponentHasBuff);
+            float result = Simulate(node.State, opponentHasBuff);
             Backpropagate(node, result);
         }
 
@@ -150,7 +150,7 @@ public class MCTSAgent
     }
 
     // Expansion: add one new child for an untried move
-    private Node Expand(Node node)
+    private Node Expand(Node node, bool opponentHasBuff)
     {
         if (node.UntriedMoves.Count == 0) return node; // nothing left to expand
 
@@ -165,6 +165,11 @@ public class MCTSAgent
         if (!childState.EnemyCaughtPlayer())
         { 
             childState.PlayerPos = GreedyOrRandomStep(childState.PlayerPos, childState.EnemyPos, !isHunter);
+        
+            if (opponentHasBuff && !childState.EnemyCaughtPlayer())
+            {
+                childState.PlayerPos = GreedyOrRandomStep(childState.PlayerPos, childState.EnemyPos, !isHunter);
+            }
         }
         Node child = new Node
         {
@@ -179,7 +184,7 @@ public class MCTSAgent
     }
 
     // Simulation: play out randomly from node's state, same random rollout logic as MCSAgent
-    private float Simulate(MctsState startState)
+    private float Simulate(MctsState startState, bool opponentHasBuff)
     {
         var state = startState;
         float coinPickupBonus = 0f;
@@ -197,10 +202,6 @@ public class MCTSAgent
         for (int step = 0; step < rolloutDepth; step++)
         {
             state.EnemyPos = GreedyOrRandomStep(state.EnemyPos, state.PlayerPos, isHunter);
-            state.PlayerPos = GreedyOrRandomStep(state.PlayerPos, state.EnemyPos, !isHunter);
-
-            if (state.EnemyCaughtPlayer()) return isHunter ? 1f : (-1f + coinPickupBonus);
-
 
             if (!isHunter)
             {
@@ -213,6 +214,23 @@ public class MCTSAgent
                 { 
                     coinPickupBonus += 0.5f; 
                 }
+            }
+
+            if (state.EnemyCaughtPlayer())
+            {
+                return isHunter ? 1f : (-1f + coinPickupBonus);
+            }
+
+            state.PlayerPos = GreedyOrRandomStep(state.PlayerPos, state.EnemyPos, !isHunter);
+
+            if (opponentHasBuff)
+            {
+                state.PlayerPos = GreedyOrRandomStep(state.PlayerPos, state.EnemyPos, !isHunter);
+            }
+
+            if (state.EnemyCaughtPlayer())
+            {
+                return isHunter ? 1f : (-1f + coinPickupBonus);
             }
         }
 
