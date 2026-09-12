@@ -119,6 +119,11 @@ public class MCSAgent
             return 5f;
         }
 
+        if (state.EnemyCaughtPlayer())
+        {
+            return isHunter ? 1f : (-1f + coinPickUpBonus);
+        }
+
         for (int step = 0; step < rolloutDepth; step++)
         {
             state.EnemyPos = GreedyOrRandomStep(state.EnemyPos, state.PlayerPos, isHunter);

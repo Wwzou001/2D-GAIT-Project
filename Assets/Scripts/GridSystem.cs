@@ -28,6 +28,7 @@ public class GridSystem : MonoBehaviour
 
     private CellType[,] grid;
     private List<Vector2Int> fountainPositions = new List<Vector2Int>();
+    private List<GameObject> spawnedObstacleColliders = new List<GameObject>();
 
     public event Action<Vector2Int> CoinCollected;
     public event Action<Vector2Int> KeyCollected; 
@@ -46,6 +47,13 @@ public class GridSystem : MonoBehaviour
 
     private void SpawnObstacleColliders()
     {
+        // Clean up old obstacle when regenerate layout
+        foreach (GameObject go in spawnedObstacleColliders)
+        {
+            if (go != null) Destroy(go);
+        }
+        spawnedObstacleColliders.Clear();
+
         for (int x = 0; x < Width; x++)
         {
             for (int y = 0; y < Height; y++)
@@ -66,7 +74,7 @@ public class GridSystem : MonoBehaviour
         }
     }
 
-    void InitialiseGrid()
+    void InitialiseGrid(bool spawnColliders = true)
     {
         for (int x = 0; x < Width; x++)
             for (int y = 0; y < Height; y++)
@@ -79,7 +87,29 @@ public class GridSystem : MonoBehaviour
         PlaceFountains(fountainCount);
         PlaceRandomly(CellType.Slow, slowCount, isObstacle: false);  // new obstacle
         PlaceRandomly(CellType.Key, keyCount, isObstacle: false); // key
-        SpawnObstacleColliders();   
+
+        if (spawnColliders)
+        {
+            SpawnObstacleColliders();
+        }
+    }
+
+    private void EnsureInitialisedForEditMode()
+    {
+        if (grid == null)
+        {
+            grid = new CellType[width, height];
+        }
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+    }
+
+    public void RegenerateLayout(bool spawnColliders = true)
+    {
+        EnsureInitialisedForEditMode();
+        InitialiseGrid(spawnColliders);
     }
 
     void PlaceRandomly(CellType type, int count, bool isObstacle)
