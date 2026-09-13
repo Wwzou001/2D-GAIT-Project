@@ -3093,6 +3093,8 @@ GameObject:
   - component: {fileID: 5796295691440088072}
   - component: {fileID: 7617188115780840056}
   - component: {fileID: 952819977}
+  - component: {fileID: 7617188115780840057}
+  - component: {fileID: 7617188115780840058}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Untagged
@@ -3253,6 +3255,7 @@ GameObject:
   - component: {fileID: 1643263925318783897}
   - component: {fileID: 1776726556}
   - component: {fileID: 8478606782727542035}
+  - component: {fileID: 8478606782727542036}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -3280,6 +3283,34 @@ MonoBehaviour:
   rolloutDepth: 15
   moveInterval: 0.6
   logDecisions: 1
+--- !u!114 &7617188115780840057
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3137018684358886587}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46a965f9409dcf047b3746336fa7f96e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MCTSSlotController
+  aiController: {fileID: 7617188115780840056}
+  humanController: {fileID: 7617188115780840058}
+  currentMode: 0
+--- !u!114 &7617188115780840058
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3137018684358886587}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4715c604e53b5784da4f9f9a593314ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MCTSPlayerMovement
+  mySlot: 0
 --- !u!114 &8478606782727542034
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3398,6 +3429,21 @@ MonoBehaviour:
   rolloutDepth: 15
   moveInterval: 0.6
   logDecisions: 1
+--- !u!114 &8478606782727542036
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6603238840912180775}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46a965f9409dcf047b3746336fa7f96e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MCTSSlotController
+  aiController: {fileID: 8478606782727542035}
+  humanController: {fileID: 1776726556}
+  currentMode: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
