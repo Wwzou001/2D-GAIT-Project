@@ -3297,7 +3297,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MCTSSlotController
   aiController: {fileID: 7617188115780840056}
   humanController: {fileID: 7617188115780840058}
-  currentMode: 0
+  currentMode: 2
 --- !u!114 &7617188115780840058
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3443,7 +3443,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MCTSSlotController
   aiController: {fileID: 8478606782727542035}
   humanController: {fileID: 1776726556}
-  currentMode: 0
+  currentMode: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

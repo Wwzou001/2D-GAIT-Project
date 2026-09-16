@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 1259136433984378608}
   - component: {fileID: 4080642390053762589}
   m_Layer: 0
-  m_Name: fly enemy
+  m_Name: randowm fly enemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
