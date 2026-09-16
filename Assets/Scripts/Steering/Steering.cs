@@ -179,6 +179,9 @@ namespace SteeringBehaviours
             Vector2 direction = toTarget.normalized;
             float checkDistance = Mathf.Min(avoidance.LookAheadDistance, toTarget.magnitude);
 
+            // show the direct path being checked
+            Debug.DrawLine(currentPos, currentPos + direction * checkDistance, Color.white);
+
             bool blocked = Physics2D.CircleCast(currentPos, avoidance.CheckRadius, direction, checkDistance, avoidance.ObstacleLayer);
             if (!blocked)
             {
@@ -189,13 +192,19 @@ namespace SteeringBehaviours
             for (float angle = avoidance.AngleStep; angle <= 90f; angle += avoidance.AngleStep)
             {
                 Vector2 rightDir = Rotate(direction, angle);
-                if (!Physics2D.CircleCast(currentPos, avoidance.CheckRadius, rightDir, checkDistance, avoidance.ObstacleLayer))
+                bool rightBlocked = Physics2D.CircleCast(currentPos, avoidance.CheckRadius, rightDir, checkDistance, avoidance.ObstacleLayer);
+                Debug.DrawLine(currentPos, currentPos + rightDir * checkDistance, rightBlocked ? Color.red : Color.green);
+
+                if (!rightBlocked)
                 {
                     return currentPos + rightDir * checkDistance;
                 }
 
                 Vector2 leftDir = Rotate(direction, -angle);
-                if (!Physics2D.CircleCast(currentPos, avoidance.CheckRadius, leftDir, checkDistance, avoidance.ObstacleLayer))
+                bool leftBlocked = Physics2D.CircleCast(currentPos, avoidance.CheckRadius, leftDir, checkDistance, avoidance.ObstacleLayer);
+                Debug.DrawLine(currentPos, currentPos + leftDir * checkDistance, leftBlocked ? Color.red : Color.green);
+
+                if (!leftBlocked)
                 {
                     return currentPos + leftDir * checkDistance;
                 }
@@ -204,7 +213,6 @@ namespace SteeringBehaviours
             // couldn't find a clear path, just go straight rather than get stuck
             return targetPos;
         }
-
         // TODO: implement separation
         // Should push away from nearby neighbours so they don't clump together
         public static Vector2 GetSeparation(Vector2 currentPos, List<Transform> neighbours, float maxSpeed)

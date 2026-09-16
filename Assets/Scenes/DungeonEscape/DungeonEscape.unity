@@ -848,6 +848,10 @@ PrefabInstance:
       value: 4.47
       objectReference: {fileID: 0}
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -9191263657056127176, guid: dcb2fd2166649e84f906b0c24397b4ba, type: 3}
+    - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_SortingOrder
       value: 5
       objectReference: {fileID: 0}
@@ -1261,6 +1265,10 @@ PrefabInstance:
       propertyPath: boundaryCenter.y
       value: 4.47
       objectReference: {fileID: 0}
+    - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 5119971492981962814, guid: 03d0b7e954798477895a1ddb4c58f2ab, type: 3}
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_SortingOrder
       value: 5
@@ -2331,6 +2339,10 @@ PrefabInstance:
       value: 4.47
       objectReference: {fileID: 0}
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 6091706668691328248, guid: 3877f30d0bb87428ca2ffef0b384e371, type: 3}
+    - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_SortingOrder
       value: 5
       objectReference: {fileID: 0}
@@ -2469,6 +2481,10 @@ PrefabInstance:
       propertyPath: boundaryCenter.y
       value: 4.47
       objectReference: {fileID: 0}
+    - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -1504733587676658999, guid: 2f08d25f475f7db408c8cc456506fdd2, type: 3}
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_SortingOrder
       value: 5
@@ -2923,7 +2939,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4565427594027659216, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
       propertyPath: mode
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4565427594027659216, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
       propertyPath: behaviour
@@ -2933,6 +2949,14 @@ PrefabInstance:
       propertyPath: targetMarker
       value: 
       objectReference: {fileID: 1055335028}
+    - target: {fileID: 4565427594027659216, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
+      propertyPath: avoidance.Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4565427594027659216, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
+      propertyPath: avoidance.ObstacleLayer.m_Bits
+      value: 128
+      objectReference: {fileID: 0}
     - target: {fileID: 6603238842634290237, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
       propertyPath: m_Name
       value: Player

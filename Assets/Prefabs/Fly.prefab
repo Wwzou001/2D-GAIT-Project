@@ -150,7 +150,7 @@ MonoBehaviour:
     Enabled: 1
     ObstacleLayer:
       serializedVersion: 2
-      m_Bits: 0
+      m_Bits: 128
     LookAheadDistance: 2
     CheckRadius: 0.4
     AngleStep: 10

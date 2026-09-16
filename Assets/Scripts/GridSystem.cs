@@ -69,6 +69,7 @@ public class GridSystem : MonoBehaviour
 
                     BoxCollider2D collider = go.AddComponent<BoxCollider2D>();
                     collider.size = new Vector2(0.9f, 0.9f);
+                    go.layer = LayerMask.NameToLayer("Obstacles");  
                 }
             }
         }
