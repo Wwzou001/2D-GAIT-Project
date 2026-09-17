@@ -49,6 +49,9 @@ public class PlayerShooting : MonoBehaviour
         collider.isTrigger = true;
         collider.radius = projectileColliderRadius;
 
+        Rigidbody2D rb = go.AddComponent<Rigidbody2D>();  
+        rb.bodyType = RigidbodyType2D.Kinematic; 
+
         Projectile projectile = go.AddComponent<Projectile>();
         projectile.speed = projectileSpeed;
         projectile.lifetime = projectileLifetime;
