@@ -2,6 +2,21 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
+/// <summary>
+/// FSM reference implementation using three clear states: Patrol, Chase and Search.
+///
+/// Sprint 3 simplification:
+/// A single targetPosition variable represents where the enemy currently wants to go.
+/// Events/state transitions update that target instead of creating extra movement states.
+///
+/// Parameters:
+/// - detectDistance: distance at which Patrol/Search detects the player.
+/// - loseDistance: larger distance at which Chase loses the player.
+/// - moveInterval: time between enemy grid moves.
+/// - patrolPointA/B: endpoints of the normal patrol route.
+/// - heuristic: A* heuristic used by the FSM's movement.
+/// - movingObstacles: temporary blocked cells that A* must route around.
+/// </summary>
 [RequireComponent(typeof(GridMover))]
 public class FSMEnemyController : MonoBehaviour
 {
@@ -9,829 +24,276 @@ public class FSMEnemyController : MonoBehaviour
     {
         Patrol,
         Chase,
-        Search,
-        ReturnToPatrol
+        Search
     }
 
     [Header("References")]
     [SerializeField] private GridMover player;
 
-    [Header("FSM Settings")]
-
-    // Enemy starts chasing at this distance
+    [Header("FSM Parameters")]
     [SerializeField] private int detectDistance = 3;
-
-    // Enemy does not immediately lose the player
-    // when they move just outside detectDistance.
     [SerializeField] private int loseDistance = 5;
-
     [SerializeField] private float moveInterval = 0.5f;
 
+    [Header("Patrol Environment")]
+    [SerializeField] private Vector2Int patrolPointA = new Vector2Int(4, 4);
+    [SerializeField] private Vector2Int patrolPointB = new Vector2Int(0, 4);
 
-    [Header("Patrol")]
-
-    [SerializeField] private Vector2Int patrolPointA =
-        new Vector2Int(4, 4);
-
-    [SerializeField] private Vector2Int patrolPointB =
-        new Vector2Int(0, 4);
-
-
-    [Header("Search")]
-
-    // How long the enemy pauses at each search point
-    [SerializeField] private float searchPauseDuration = 0.5f;
-
+    [Header("A* Movement")]
+    [SerializeField] private AStarPathfinder.HeuristicType heuristic =
+        AStarPathfinder.HeuristicType.Manhattan;
+    [SerializeField] private List<GridMover> movingObstacles = new List<GridMover>();
 
     [Header("Teaching / Debug")]
-
     [SerializeField] private bool showDebugLogs = true;
-
     [SerializeField] private TMP_Text stateText;
 
-
     private GridMover mover;
+    private EnemyState currentState = EnemyState.Patrol;
+    private EnemyState previousState = EnemyState.Patrol;
 
-    private EnemyState currentState =
-        EnemyState.Patrol;
-
-    private Vector2Int currentPatrolTarget;
-
+    // Core Sprint 3 simplification: states update this one destination variable.
+    private Vector2Int targetPosition;
     private Vector2Int lastKnownPlayerPosition;
-
-    private Vector2Int returnTarget;
-
     private float moveTimer;
 
-    private float searchPauseTimer;
-
-
-    // Search locations around the player's
-    // last known position.
-    private readonly List<Vector2Int> searchPoints =
-        new List<Vector2Int>();
-
-    private int currentSearchPointIndex = 0;
-
-
-    public EnemyState CurrentState =>
-        currentState;
-
-
-     
-    // INITIALISATION
-     
+    public EnemyState CurrentState => currentState;
+    public Vector2Int CurrentTarget => targetPosition;
 
     private void Awake()
     {
         mover = GetComponent<GridMover>();
-
-        currentPatrolTarget = patrolPointA;
-
+        targetPosition = patrolPointA;
         UpdateStateDisplay();
     }
 
-
-     
-    // UPDATE
-     
-
     private void Update()
     {
-        // Stop AI once game ends.
-        if (GameManager.Instance != null &&
-            GameManager.Instance.GameOver)
-        {
+        if (GameManager.Instance != null && GameManager.Instance.GameOver)
             return;
-        }
 
         if (player == null)
             return;
 
-
-        UpdateState();
-
+        UpdateStateFromEvents();
 
         moveTimer += Time.deltaTime;
-
         if (moveTimer >= moveInterval)
         {
             moveTimer = 0f;
-
             ExecuteCurrentState();
         }
-
 
         UpdateStateDisplay();
     }
 
-
-     
-    // STATE TRANSITIONS
-     
-
-    private void UpdateState()
+    /// <summary>
+    /// State changes are event-like decisions. Each important event updates targetPosition:
+    /// player detected -> player cell; player lost -> last known cell; patrol point reached -> other patrol point.
+    /// </summary>
+    private void UpdateStateFromEvents()
     {
-        int distanceToPlayer =
-            ManhattanDistance(
-                mover.GridPosition,
-                player.GridPosition
-            );
-
+        int distanceToPlayer = ManhattanDistance(mover.GridPosition, player.GridPosition);
 
         switch (currentState)
         {
-            // ------------------------------------------
-            // PATROL
-            // ------------------------------------------
-
             case EnemyState.Patrol:
-
                 if (distanceToPlayer <= detectDistance)
                 {
-                    lastKnownPlayerPosition =
-                        player.GridPosition;
-
-                    ChangeState(
-                        EnemyState.Chase
-                    );
+                    lastKnownPlayerPosition = player.GridPosition;
+                    targetPosition = player.GridPosition;
+                    ChangeState(EnemyState.Chase, "player detected");
                 }
-
                 break;
 
-
-            // ------------------------------------------
-            // CHASE
-            // ------------------------------------------
-
             case EnemyState.Chase:
-
-                /*
-                 * We use a larger loseDistance
-                 * than detectDistance.
-                 *
-                 * This stops the FSM rapidly switching
-                 * between Patrol/Search and Chase when
-                 * the player is standing near the edge
-                 * of the detection range.
-                 */
-
                 if (distanceToPlayer <= loseDistance)
                 {
-                    // Keep remembering where
-                    // the player currently is.
-                    lastKnownPlayerPosition =
-                        player.GridPosition;
+                    // Player is still known, so the target follows the player's current cell.
+                    lastKnownPlayerPosition = player.GridPosition;
+                    targetPosition = player.GridPosition;
                 }
                 else
                 {
-                    StartSearch();
-
-                    ChangeState(
-                        EnemyState.Search
-                    );
+                    // Player-lost event: Search has ONE target, the last known position.
+                    targetPosition = lastKnownPlayerPosition;
+                    ChangeState(EnemyState.Search, "player lost");
                 }
-
                 break;
-
-
-            // ------------------------------------------
-            // SEARCH
-            // ------------------------------------------
 
             case EnemyState.Search:
-
-                // If player comes back into detection
-                // range, immediately chase again.
                 if (distanceToPlayer <= detectDistance)
                 {
-                    lastKnownPlayerPosition =
-                        player.GridPosition;
-
-                    ChangeState(
-                        EnemyState.Chase
-                    );
+                    lastKnownPlayerPosition = player.GridPosition;
+                    targetPosition = player.GridPosition;
+                    ChangeState(EnemyState.Chase, "player found again");
                 }
-
-                break;
-
-
-            // ------------------------------------------
-            // RETURN TO PATROL
-            // ------------------------------------------
-
-            case EnemyState.ReturnToPatrol:
-
-                // Enemy can still detect the player
-                // while returning.
-                if (distanceToPlayer <= detectDistance)
-                {
-                    lastKnownPlayerPosition =
-                        player.GridPosition;
-
-                    ChangeState(
-                        EnemyState.Chase
-                    );
-                }
-
                 break;
         }
     }
-
-
-     
-    // EXECUTE STATE
-     
 
     private void ExecuteCurrentState()
     {
         switch (currentState)
         {
             case EnemyState.Patrol:
-
                 Patrol();
-
                 break;
-
 
             case EnemyState.Chase:
-
                 Chase();
-
                 break;
-
 
             case EnemyState.Search:
-
                 Search();
-
-                break;
-
-
-            case EnemyState.ReturnToPatrol:
-
-                ReturnToPatrol();
-
                 break;
         }
     }
-
-
-     
-    // PATROL
-     
 
     private void Patrol()
     {
-        // Reached patrol point?
-        if (mover.GridPosition ==
-            currentPatrolTarget)
+        if (mover.GridPosition == targetPosition)
         {
-            // Switch to the opposite patrol point.
-            currentPatrolTarget =
-                currentPatrolTarget == patrolPointA
-                ? patrolPointB
-                : patrolPointA;
-
-
-            if (showDebugLogs)
-            {
-                Debug.Log(
-                    $"FSM PATROL: new target = " +
-                    $"{currentPatrolTarget}"
-                );
-            }
+            // Patrol-point event: update the same target variable to the other endpoint.
+            targetPosition = targetPosition == patrolPointA ? patrolPointB : patrolPointA;
+            Log($"FSM PATROL: target updated to {targetPosition}");
         }
 
-
-        MoveUsingAStar(
-            currentPatrolTarget
-        );
+        MoveUsingAStar(targetPosition);
     }
-
-
-     
-    // CHASE
-     
 
     private void Chase()
     {
-        // Update the player's last-known position.
-        lastKnownPlayerPosition =
-            player.GridPosition;
-
-
-        /*
-         * Rather than moving horizontally /
-         * vertically directly toward the player,
-         * A* calculates a valid route.
-         *
-         * This allows the enemy to chase
-         * around obstacles.
-         */
-        MoveUsingAStar(
-            player.GridPosition
-        );
+        // UpdateStateFromEvents keeps targetPosition synced with the visible player.
+        MoveUsingAStar(targetPosition);
     }
-
-
-     
-    // START SEARCH
-     
-
-    private void StartSearch()
-    {
-        searchPoints.Clear();
-
-        currentSearchPointIndex = 0;
-
-        searchPauseTimer = 0f;
-
-
-        /*
-         * First search the exact location
-         * where the player was last seen.
-         */
-        AddSearchPointIfValid(
-            lastKnownPlayerPosition
-        );
-
-
-        /*
-         * Then search nearby cells.
-         *
-         * This makes SEARCH actually look
-         * like searching rather than standing
-         * still at one point.
-         */
-
-        AddSearchPointIfValid(
-            lastKnownPlayerPosition +
-            Vector2Int.up
-        );
-
-        AddSearchPointIfValid(
-            lastKnownPlayerPosition +
-            Vector2Int.right
-        );
-
-        AddSearchPointIfValid(
-            lastKnownPlayerPosition +
-            Vector2Int.down
-        );
-
-        AddSearchPointIfValid(
-            lastKnownPlayerPosition +
-            Vector2Int.left
-        );
-
-
-        // Optional diagonal search locations
-
-        AddSearchPointIfValid(
-            lastKnownPlayerPosition +
-            new Vector2Int(1, 1)
-        );
-
-        AddSearchPointIfValid(
-            lastKnownPlayerPosition +
-            new Vector2Int(-1, 1)
-        );
-
-        AddSearchPointIfValid(
-            lastKnownPlayerPosition +
-            new Vector2Int(1, -1)
-        );
-
-        AddSearchPointIfValid(
-            lastKnownPlayerPosition +
-            new Vector2Int(-1, -1)
-        );
-
-
-        if (showDebugLogs)
-        {
-            Debug.Log(
-                $"FSM SEARCH: starting search around " +
-                $"{lastKnownPlayerPosition}. " +
-                $"Search points = {searchPoints.Count}"
-            );
-        }
-    }
-
-
-     
-    // SEARCH
-     
 
     private void Search()
     {
-        /*
-         * If there are no valid search cells,
-         * stop searching and return.
-         */
-
-        if (searchPoints.Count == 0)
+        // Search is intentionally simple per client feedback:
+        // travel to the last-known player position stored in targetPosition.
+        if (mover.GridPosition != targetPosition)
         {
-            BeginReturnToPatrol();
-
+            MoveUsingAStar(targetPosition);
             return;
         }
 
-
-        /*
-         * Have we checked all search points?
-         */
-
-        if (currentSearchPointIndex >=
-            searchPoints.Count)
-        {
-            BeginReturnToPatrol();
-
-            return;
-        }
-
-
-        Vector2Int searchTarget =
-            searchPoints[currentSearchPointIndex];
-
-
-        /*
-         * Move towards the current
-         * search location.
-         */
-
-        if (mover.GridPosition != searchTarget)
-        {
-            MoveUsingAStar(
-                searchTarget
-            );
-
-            return;
-        }
-
-
-        /*
-         * We reached the search point.
-         *
-         * Pause briefly as though the enemy
-         * is checking the area.
-         */
-
-        searchPauseTimer += moveInterval;
-
-
-        if (showDebugLogs)
-        {
-            Debug.Log(
-                $"FSM SEARCH: checking " +
-                $"{searchTarget}"
-            );
-        }
-
-
-        if (searchPauseTimer >=
-            searchPauseDuration)
-        {
-            searchPauseTimer = 0f;
-
-            currentSearchPointIndex++;
-
-
-            if (showDebugLogs)
-            {
-                Debug.Log(
-                    $"FSM SEARCH: moving to " +
-                    $"search point " +
-                    $"{currentSearchPointIndex + 1}"
-                );
-            }
-        }
+        // Search-target reached and player was not rediscovered.
+        // No ReturnToPatrol state is needed: update the target and resume Patrol.
+        targetPosition = GetNearestPatrolPoint();
+        ChangeState(EnemyState.Patrol, "last-known position checked");
     }
 
-
-     
-    // SEARCH POINT VALIDATION
-     
-
-    private void AddSearchPointIfValid(
-        Vector2Int position)
+    private Vector2Int GetNearestPatrolPoint()
     {
-        if (GridSystem.Instance == null)
-            return;
-
-
-        // Ignore positions outside grid.
-        if (!GridSystem.Instance.IsInBounds(
-            position))
-        {
-            return;
-        }
-
-
-        // Ignore obstacles.
-        if (GridSystem.Instance.IsObstacle(
-            position))
-        {
-            return;
-        }
-
-
-        // Avoid duplicates.
-        if (searchPoints.Contains(position))
-            return;
-
-
-        searchPoints.Add(position);
+        int distanceA = ManhattanDistance(mover.GridPosition, patrolPointA);
+        int distanceB = ManhattanDistance(mover.GridPosition, patrolPointB);
+        return distanceA <= distanceB ? patrolPointA : patrolPointB;
     }
 
-
-     
-    // RETURN TO PATROL
-     
-
-    private void BeginReturnToPatrol()
+    private bool MoveUsingAStar(Vector2Int target)
     {
-        /*
-         * Choose whichever patrol point
-         * is closest to the enemy.
-         */
-
-        int distanceToA =
-            ManhattanDistance(
-                mover.GridPosition,
-                patrolPointA
-            );
-
-        int distanceToB =
-            ManhattanDistance(
-                mover.GridPosition,
-                patrolPointB
-            );
-
-
-        returnTarget =
-            distanceToA <= distanceToB
-            ? patrolPointA
-            : patrolPointB;
-
-
-        if (showDebugLogs)
-        {
-            Debug.Log(
-                $"FSM SEARCH finished. " +
-                $"Returning to patrol at " +
-                $"{returnTarget}"
-            );
-        }
-
-
-        ChangeState(
-            EnemyState.ReturnToPatrol
-        );
-    }
-
-
-    private void ReturnToPatrol()
-    {
-        /*
-         * Once we reach the patrol route,
-         * go back to normal Patrol.
-         */
-
-        if (mover.GridPosition ==
-            returnTarget)
-        {
-            currentPatrolTarget =
-                returnTarget == patrolPointA
-                ? patrolPointB
-                : patrolPointA;
-
-
-            ChangeState(
-                EnemyState.Patrol
-            );
-
-
-            return;
-        }
-
-
-        MoveUsingAStar(
-            returnTarget
-        );
-    }
-
-
-     
-    // A* MOVEMENT
-     
-
-    private bool MoveUsingAStar(
-        Vector2Int target)
-    {
-        // Already at destination.
         if (mover.GridPosition == target)
-        {
             return true;
-        }
 
+        HashSet<Vector2Int> blocked = GetMovingObstacleCells();
+        AStarPathfinder.SearchResult result = AStarPathfinder.FindPath(
+            mover.GridPosition,
+            target,
+            heuristic,
+            blocked);
 
-        /*
-         * Calculate path from current
-         * position to target.
-         */
-
-        List<Vector2Int> path =
-            AStarPathfinder.FindPath(
-                mover.GridPosition,
-                target
-            );
-
-
-        if (path == null ||
-            path.Count == 0)
+        if (!result.PathFound || result.Path.Count == 0)
         {
-            if (showDebugLogs)
-            {
-                Debug.LogWarning(
-                    $"FSM: No path found from " +
-                    $"{mover.GridPosition} " +
-                    $"to {target}"
-                );
-            }
-
+            Log($"FSM: no current path to {target}");
             return false;
         }
 
+        Vector2Int nextPosition = result.Path[0];
 
-        /*
-         * We only move ONE node along
-         * the A* path each movement tick.
-         */
+        // A moving obstacle may have changed cell since the search began.
+        blocked = GetMovingObstacleCells();
+        if (blocked.Contains(nextPosition))
+            return false;
 
-        Vector2Int nextPosition =
-            path[0];
-
-
-        Vector2Int difference =
-            nextPosition -
-            mover.GridPosition;
-
-
+        Vector2Int difference = nextPosition - mover.GridPosition;
         Direction direction;
 
+        if (difference.x > 0) direction = Direction.Right;
+        else if (difference.x < 0) direction = Direction.Left;
+        else if (difference.y > 0) direction = Direction.Up;
+        else if (difference.y < 0) direction = Direction.Down;
+        else return false;
 
-        if (difference.x > 0)
-        {
-            direction = Direction.Right;
-        }
-        else if (difference.x < 0)
-        {
-            direction = Direction.Left;
-        }
-        else if (difference.y > 0)
-        {
-            direction = Direction.Up;
-        }
-        else if (difference.y < 0)
-        {
-            direction = Direction.Down;
-        }
-        else
-        {
-            return false;
-        }
-
-
-        return mover.TryMove(
-            direction
-        );
+        return mover.TryMove(direction);
     }
 
+    private HashSet<Vector2Int> GetMovingObstacleCells()
+    {
+        HashSet<Vector2Int> blocked = new HashSet<Vector2Int>();
 
-     
-    // CHANGE STATE
-     
+        foreach (GridMover obstacle in movingObstacles)
+        {
+            if (obstacle == null || obstacle == mover || obstacle == player)
+                continue;
 
-    private void ChangeState(
-        EnemyState newState)
+            blocked.Add(obstacle.GridPosition);
+        }
+
+        return blocked;
+    }
+
+    private void ChangeState(EnemyState newState, string reason)
     {
         if (newState == currentState)
             return;
 
-
-        EnemyState previousState =
-            currentState;
-
-
-        currentState =
-            newState;
-
-
-        if (showDebugLogs)
-        {
-            Debug.Log(
-                $"FSM: {previousState} -> " +
-                $"{currentState}"
-            );
-        }
-
-
+        previousState = currentState;
+        currentState = newState;
+        Log($"FSM: {previousState} -> {currentState} ({reason}) | Target = {targetPosition}");
         UpdateStateDisplay();
     }
 
-
-     
-    // DISTANCE
-     
-
-    private int ManhattanDistance(
-        Vector2Int a,
-        Vector2Int b)
+    private int ManhattanDistance(Vector2Int a, Vector2Int b)
     {
-        return
-            Mathf.Abs(a.x - b.x) +
-            Mathf.Abs(a.y - b.y);
+        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }
-
-
-     
-    // TEACHING DISPLAY
-     
 
     private void UpdateStateDisplay()
     {
         if (stateText == null)
             return;
 
-
-        int distance =
-            player != null
-            ? ManhattanDistance(
-                mover.GridPosition,
-                player.GridPosition
-            )
+        int playerDistance = player != null
+            ? ManhattanDistance(mover.GridPosition, player.GridPosition)
             : 0;
 
-
         stateText.text =
-            $"FSM State: {currentState}\n" +
-            $"Player Distance: {distance}";
+            $"Previous State: {previousState}\n" +
+            $"Current State: {currentState}\n" +
+            $"Target: {targetPosition}\n" +
+            $"Player Distance: {playerDistance}";
     }
 
-
-     
-    // GIZMOS
-     
+    private void Log(string message)
+    {
+        if (showDebugLogs)
+            Debug.Log(message);
+    }
 
     private void OnDrawGizmosSelected()
     {
         if (GridSystem.Instance == null)
             return;
 
-
-        // Patrol point A
-        Gizmos.DrawWireSphere(
-            GridSystem.Instance.GridToWorld(
-                patrolPointA
-            ),
-            0.2f
-        );
-
-
-        // Patrol point B
-        Gizmos.DrawWireSphere(
-            GridSystem.Instance.GridToWorld(
-                patrolPointB
-            ),
-            0.2f
-        );
-
+        Gizmos.DrawWireSphere(GridSystem.Instance.GridToWorld(patrolPointA), 0.2f);
+        Gizmos.DrawWireSphere(GridSystem.Instance.GridToWorld(patrolPointB), 0.2f);
 
         if (Application.isPlaying)
         {
-            // Last known player location
             Gizmos.DrawWireCube(
-                GridSystem.Instance.GridToWorld(
-                    lastKnownPlayerPosition
-                ),
-                Vector3.one * 0.35f
-            );
-
-
-            // Search positions
-            foreach (
-                Vector2Int point
-                in searchPoints)
-            {
-                Gizmos.DrawWireSphere(
-                    GridSystem.Instance.GridToWorld(
-                        point
-                    ),
-                    0.12f
-                );
-            }
+                GridSystem.Instance.GridToWorld(targetPosition),
+                Vector3.one * 0.35f);
         }
     }
 }
