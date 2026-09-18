@@ -16,6 +16,13 @@ public class Coin : MonoBehaviour
             PlatformerGameManager.Instance.CollectCoin(value);
         }
 
+        // Notify the ML-Agents wrapper, if player has one
+        PlatformerAgent agent = other.GetComponent<PlatformerAgent>();
+        if (agent != null)
+        {
+            agent.OnCoinCollected();
+        }
+
         Destroy(gameObject);
     }
 }

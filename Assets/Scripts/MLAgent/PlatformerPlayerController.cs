@@ -16,6 +16,8 @@ public class PlatformerPlayerController : MonoBehaviour
     private bool isGrounded;
     private float horizontalInput;
 
+    public bool ExternallyControlled { get; set; } = false;
+
     public bool IsGrounded => isGrounded;
     public Vector2 Velocity => rb.linearVelocity;
 
@@ -40,8 +42,10 @@ public class PlatformerPlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
-
-        MoveHorizontal(horizontalInput);
+        if (!ExternallyControlled)
+        { 
+            MoveHorizontal(horizontalInput); 
+        }
 
         if (rb.linearVelocity.y > jumpForce)
         {

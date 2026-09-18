@@ -9,6 +9,9 @@ public class PlatformerGameManager : MonoBehaviour
     [SerializeField] private TMPro.TMP_Text resultText;
     [SerializeField] private TMPro.TMP_Text coinCounterText;
 
+    // When true,Win()/Lose() skip the end of level UI and Time.timeScale pause entirely
+    private bool trainingMode = false;
+
     private bool levelOver = false;
     private int coinsCollected = 0;
 
@@ -23,6 +26,8 @@ public class PlatformerGameManager : MonoBehaviour
         {
             endPanel.SetActive(false);
         }
+
+        trainingMode = Object.FindAnyObjectByType<PlatformerAgent>() != null;
     }
 
     private void Start()
@@ -53,6 +58,12 @@ public class PlatformerGameManager : MonoBehaviour
 
         Debug.Log("Level complete!");
 
+        if (trainingMode)
+        {
+            ResetForNextEpisode();
+            return;
+        }
+
         if (endPanel != null)
         {
             endPanel.SetActive(true);
@@ -73,6 +84,12 @@ public class PlatformerGameManager : MonoBehaviour
 
         Debug.Log($"Level failed: {reason}");
 
+        if (trainingMode)
+        {
+            ResetForNextEpisode();
+            return;
+        }
+
         if (endPanel != null)
         {
             endPanel.SetActive(true);
@@ -84,6 +101,14 @@ public class PlatformerGameManager : MonoBehaviour
         }
 
         Time.timeScale = 0f;
+    }
+
+    // Training mode equivalent of RestartLevel()
+    private void ResetForNextEpisode()
+    {
+        levelOver = false;
+        coinsCollected = 0;
+        UpdateCoinCounter();
     }
 
     public void RestartLevel()

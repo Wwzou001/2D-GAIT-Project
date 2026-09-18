@@ -35,6 +35,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4249628271548593199}
+  - {fileID: 7535150428677843589}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &8760779774047878156
@@ -199,7 +200,7 @@ CircleCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
@@ -220,17 +221,22 @@ MonoBehaviour:
   moveSpeed: 2
   patrolDistance: 5
   useObstacleDetection: 1
-  obstacleCheck: {fileID: 0}
+  obstacleCheck: {fileID: 4249628271548593199}
   obstacleLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 8
   obstacleCheckDistance: 0.3
-  useGroundEdgeDetection: 0
-  groundEdgeCheck: {fileID: 0}
+  enemyTag: Enemy
+  turnCooldown: 0.3
+  useGroundEdgeDetection: 1
+  groundEdgeCheck: {fileID: 7535150428677843589}
   groundLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 8
   edgeCheckDistance: 0.5
+  distanceVariation: 0.3
+  speedVariation: 0.2
+  randomiseStartDirection: 1
 --- !u!1 &2703613283942028318
 GameObject:
   m_ObjectHideFlags: 0
@@ -256,7 +262,38 @@ Transform:
   m_GameObject: {fileID: 2703613283942028318}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.3, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1766604221502294341}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4169634486601422119
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7535150428677843589}
+  m_Layer: 0
+  m_Name: GroundEdgeCheck
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7535150428677843589
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4169634486601422119}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.3, y: -0.12, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

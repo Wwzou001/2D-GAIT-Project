@@ -12,5 +12,12 @@ public class LevelEndFlag : MonoBehaviour
         {
             PlatformerGameManager.Instance.Win();
         }
+
+        // Notify the ML-Agents wrapper, if player has one
+        PlatformerAgent agent = other.GetComponent<PlatformerAgent>();
+        if (agent != null)
+        {
+            agent.OnGoalReached();
+        }
     }
 }

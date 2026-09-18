@@ -1,0 +1,4 @@
+conda activate mlagents
+mlagents-learn MLAgent.yaml --run-id=mlagent_test
+
+tensorboard --logdir results
