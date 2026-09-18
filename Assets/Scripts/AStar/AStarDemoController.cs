@@ -44,6 +44,13 @@ public class AStarDemoController : MonoBehaviour
     private bool isFollowingPath;
     private readonly List<GameObject> nodeLabels = new List<GameObject>();
 
+    // Snapshot of the ORIGINAL search started when P is pressed.
+    // The agent may replan while moving, but the teaching display keeps this
+    // first search so Start / Path Length / Nodes Explored / G-H costs stay stable.
+    private Vector2Int demoStart;
+    private Vector2Int demoGoal;
+    private AStarPathfinder.SearchResult initialSearchResult;
+
     private void Awake()
     {
         mover = GetComponent<GridMover>();
@@ -71,6 +78,17 @@ public class AStarDemoController : MonoBehaviour
         isFollowingPath = true;
         Vector2Int originalGoal = player.GridPosition;
 
+        // Capture one complete search for the teaching display. Replanning below
+        // is only used to move safely around dynamic obstacles.
+        demoStart = mover.GridPosition;
+        demoGoal = originalGoal;
+        initialSearchResult = AStarPathfinder.FindPath(
+            demoStart,
+            demoGoal,
+            heuristic,
+            GetMovingObstacleCells());
+        UpdateVisualisation(initialSearchResult, demoGoal);
+
         while (mover.GridPosition != originalGoal)
         {
             if (GameManager.Instance != null && GameManager.Instance.GameOver)
@@ -87,7 +105,9 @@ public class AStarDemoController : MonoBehaviour
                 heuristic,
                 blocked);
 
-            UpdateVisualisation(result, goal);
+            // Do not replace the teaching snapshot on every movement step.
+            // Otherwise Start changes to the agent's current cell and the explored
+            // node count/path length naturally shrink as the agent approaches Goal.
 
             if (!result.PathFound || result.Path.Count == 0)
             {
@@ -164,12 +184,32 @@ public class AStarDemoController : MonoBehaviour
             debugText.text =
                 $"A* PATHFINDING\n" +
                 $"Heuristic: {heuristic}\n" +
-                $"Start: {mover.GridPosition}\n" +
+                $"Start: {demoStart}\n" +
                 $"Goal: {goal}\n" +
                 $"Path Length: {(result.PathFound ? result.Path.Count : 0)}\n" +
                 $"Nodes Explored: {result.ExploredNodes.Count}\n" +
+                $"Goal G Cost: {GetGoalGCost(result):0.#}\n" +
+                $"Goal H Cost: {GetGoalHCost(result):0.#}\n" +
                 $"Moving Obstacles: {GetMovingObstacleCells().Count}";
         }
+    }
+
+    private float GetGoalGCost(AStarPathfinder.SearchResult result)
+    {
+        if (result == null || !result.PathFound || result.ExploredNodes.Count == 0)
+            return 0f;
+
+        // The goal is the final explored node when A* succeeds.
+        return result.ExploredNodes[result.ExploredNodes.Count - 1].GCost;
+    }
+
+    private float GetGoalHCost(AStarPathfinder.SearchResult result)
+    {
+        if (result == null || !result.PathFound || result.ExploredNodes.Count == 0)
+            return 0f;
+
+        // H is zero at the goal because there is no estimated distance remaining.
+        return result.ExploredNodes[result.ExploredNodes.Count - 1].HCost;
     }
 
     private void CreateNodeLabel(AStarPathfinder.NodeDebugInfo node)
