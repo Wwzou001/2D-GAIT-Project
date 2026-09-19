@@ -30,6 +30,7 @@ public class PlatformerAgent : Agent
     private float episodeTime;
     private float previousX;
     private float closestDistanceToGoal; // shortest distance to goal achieved so far this episode
+    private int stepsSinceProgress; // steps since the last new best distance was reached
 
     [SerializeField] private float maxEpisodeSectonds = 20f; // safety cap per episode
 
@@ -57,6 +58,7 @@ public class PlatformerAgent : Agent
         previousX = transform.position.x;
         closestDistanceToGoal = goalPosition != null 
             ? Vector2.Distance(transform.position, goalPosition.position) : float.MaxValue;
+        stepsSinceProgress = 0;
     }
 
     private void FixedUpdate()
@@ -167,6 +169,15 @@ public class PlatformerAgent : Agent
                 float newProgress = closestDistanceToGoal - distanceToGoal;
                 AddReward(newProgress * 1f);
                 closestDistanceToGoal = distanceToGoal;
+                stepsSinceProgress = 0;
+            }
+            else
+            {
+                stepsSinceProgress++;
+                if (stepsSinceProgress % 200 == 0)
+                { 
+                    AddReward(-0.5f); 
+                }
             }
         }
         previousX = transform.position.x;
