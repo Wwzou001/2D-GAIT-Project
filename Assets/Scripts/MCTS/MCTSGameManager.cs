@@ -27,7 +27,7 @@ public class MCTSGameManager : MonoBehaviour
     public bool GameOver => gameOver;
     public Slot CurrentTurn { get; private set; }
 
-    public bool IsPlayerTurn => IsSlotTurn(SlotForRole(AgentRole.Collector));
+    public bool IsCollectorTurn => IsSlotTurn(SlotForRole(AgentRole.Collector));
 
     private void Awake()
     {
@@ -98,9 +98,9 @@ public class MCTSGameManager : MonoBehaviour
     {
         gameOver = true;
 
-        bool collectorWon = winningSlot == SlotForRole(AgentRole.Collector);
-        string message = collectorWon ? "You Win!" : "You Lose!";
-        string logMessage = collectorWon ? "Game Over - Player Wins!" : "Game Over - Player Loses!";
+        AgentRole winningRole = winningSlot == SlotForRole(AgentRole.Hunter) ? AgentRole.Hunter : AgentRole.Collector;
+        string message = winningRole == AgentRole.Hunter ? "Hunter Wins!" : "Collector Wins!";
+        string logMessage = $"Game Over - {message}";
         Debug.Log(logMessage);
 
         if (endGamePanel != null)

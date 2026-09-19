@@ -1,6 +1,7 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
-public class MctsEnemyController : MonoBehaviour
+public class MCTSAiController : MonoBehaviour
 {
     public enum AlgorithmType { MCS, MCTS }
 
@@ -8,8 +9,10 @@ public class MctsEnemyController : MonoBehaviour
 
     [SerializeField] private AlgorithmType algorithm = AlgorithmType.MCTS;
 
-    [SerializeField] private MCTSGridMover enemyMover;
-    [SerializeField] private MCTSGridMover playerMover;
+    [FormerlySerializedAs("enemyMover")]
+    [SerializeField] private MCTSGridMover selfMover;
+    [FormerlySerializedAs("playerMover")]
+    [SerializeField] private MCTSGridMover opponentMover;
 
     [SerializeField] private int simulationsPerMove = 300;
     [SerializeField] private int rolloutDepth = 15;
@@ -33,8 +36,8 @@ public class MctsEnemyController : MonoBehaviour
 
     private void Awake()
     {
-        if (enemyMover == null)
-            enemyMover = GetComponent<MCTSGridMover>();
+        if (selfMover == null)
+            selfMover = GetComponent<MCTSGridMover>();
     }
 
     private void Start()
@@ -74,7 +77,7 @@ public class MctsEnemyController : MonoBehaviour
         if (MCTSGameManager.Instance != null && MCTSGameManager.Instance.GameOver)
             return;
 
-        // Not enemy turn yet, wait
+        // Not this slot turn yet, wait
         if (MCTSGameManager.Instance != null && !MCTSGameManager.Instance.IsSlotTurn(mySlot))
         {
             timer = 0f;
@@ -89,14 +92,14 @@ public class MctsEnemyController : MonoBehaviour
         // Start new turn
         if (movesRemainingThisTurn <= 0)
         {
-            movesRemainingThisTurn = enemyMover.MoveDistance;
+            movesRemainingThisTurn = selfMover.MoveDistance;
         }
 
         Direction move;
         string log;
 
         // Read opponent's current buff state each decision
-        bool opponentHasBuff = playerMover.HasFountainBuff;
+        bool opponentHasBuff = opponentMover.HasFountainBuff;
 
         if (opponentHasBuff)
         {
@@ -105,17 +108,17 @@ public class MctsEnemyController : MonoBehaviour
 
         if (algorithm == AlgorithmType.MCS)
         {
-            move = mcsAgent.ChooseMove(enemyMover.GridPosition, playerMover.GridPosition,opponentHasBuff, out log);
+            move = mcsAgent.ChooseMove(selfMover.GridPosition, opponentMover.GridPosition,opponentHasBuff, out log);
         }
         else
         {
-            move = mctsAgent.ChooseMove(enemyMover.GridPosition, playerMover.GridPosition,opponentHasBuff, out log);
+            move = mctsAgent.ChooseMove(selfMover.GridPosition, opponentMover.GridPosition,opponentHasBuff, out log);
         }
 
         if (logDecisions)
             Debug.Log(log);
 
-        bool moved = enemyMover.TryMove(move);
+        bool moved = selfMover.TryMove(move);
 
         // Only end turn when move succeed
         if (moved)

@@ -3,7 +3,7 @@ using TMPro;
 
 public class DecisionTimeLabel : MonoBehaviour
 {
-    [SerializeField] private MctsEnemyController enemyController;
+    [SerializeField] private MCTSAiController enemyController;
     [SerializeField] private TMP_Text label;
 
     void Awake()

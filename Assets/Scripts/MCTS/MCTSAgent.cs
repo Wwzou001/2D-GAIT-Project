@@ -33,7 +33,7 @@ public class MCTSAgent
     {
         public Node Parent;
         public Direction? MoveFromParent; // the move lead to this node, null for root
-        public MctsState State;
+        public MCTSState State;
         public List<Node> Children = new List<Node>();
         public List<Direction> UntriedMoves;
         public int Visits;
@@ -79,7 +79,7 @@ public class MCTSAgent
 
         Node root = new Node
         {
-            State = new MctsState(selfPos, opponentPos),
+            State = new MCTSState(selfPos, opponentPos),
             UntriedMoves = rootLegalMoves
         };
 
@@ -158,17 +158,17 @@ public class MCTSAgent
         Direction move = node.UntriedMoves[index];
         node.UntriedMoves.RemoveAt(index);
 
-        MctsState childState = node.State;
-        childState.EnemyPos = childState.EnemyPos + Offset(move);
+        MCTSState childState = node.State;
+        childState.SelfPos = childState.SelfPos + Offset(move);
 
         // Advance the opponent, to reflect both sides are moving
-        if (!childState.EnemyCaughtPlayer())
+        if (!childState.SelfCaughtOpponent())
         { 
-            childState.PlayerPos = GreedyOrRandomStep(childState.PlayerPos, childState.EnemyPos, !isHunter);
+            childState.OpponentPos = GreedyOrRandomStep(childState.OpponentPos, childState.SelfPos, !isHunter);
         
-            if (opponentHasBuff && !childState.EnemyCaughtPlayer())
+            if (opponentHasBuff && !childState.SelfCaughtOpponent())
             {
-                childState.PlayerPos = GreedyOrRandomStep(childState.PlayerPos, childState.EnemyPos, !isHunter);
+                childState.OpponentPos = GreedyOrRandomStep(childState.OpponentPos, childState.SelfPos, !isHunter);
             }
         }
         Node child = new Node
@@ -176,7 +176,7 @@ public class MCTSAgent
             Parent = node,
             MoveFromParent = move,
             State = childState,
-            UntriedMoves = GetLegalMoves(childState.EnemyPos)
+            UntriedMoves = GetLegalMoves(childState.SelfPos)
         };
 
         node.Children.Add(child);
@@ -184,64 +184,64 @@ public class MCTSAgent
     }
 
     // Simulation: play out randomly from node's state, same random rollout logic as MCSAgent
-    private float Simulate(MctsState startState, bool opponentHasBuff)
+    private float Simulate(MCTSState startState, bool opponentHasBuff)
     {
         var state = startState;
         float coinPickupBonus = 0f;
 
-        if (!isHunter && IsWinningCoinPickup(state.EnemyPos))
+        if (!isHunter && IsWinningCoinPickup(state.SelfPos))
         {
             return 5f;
         }
 
-        if (state.EnemyCaughtPlayer())
+        if (state.SelfCaughtOpponent())
         {
             return isHunter ? 1f : -1f;
         }
 
         for (int step = 0; step < rolloutDepth; step++)
         {
-            state.EnemyPos = GreedyOrRandomStep(state.EnemyPos, state.PlayerPos, isHunter);
+            state.SelfPos = GreedyOrRandomStep(state.SelfPos, state.OpponentPos, isHunter);
 
             if (!isHunter)
             {
-                if (IsWinningCoinPickup(state.EnemyPos))
+                if (IsWinningCoinPickup(state.SelfPos))
                 { 
                     return 5f;
                 }
 
-                if (GridSystem.Instance.IsCoin(state.EnemyPos))
+                if (GridSystem.Instance.IsCoin(state.SelfPos))
                 { 
                     coinPickupBonus += 0.5f; 
                 }
             }
 
-            if (state.EnemyCaughtPlayer())
+            if (state.SelfCaughtOpponent())
             {
                 return isHunter ? 1f : (-1f + coinPickupBonus);
             }
 
-            state.PlayerPos = GreedyOrRandomStep(state.PlayerPos, state.EnemyPos, !isHunter);
+            state.OpponentPos = GreedyOrRandomStep(state.OpponentPos, state.SelfPos, !isHunter);
 
             if (opponentHasBuff)
             {
-                state.PlayerPos = GreedyOrRandomStep(state.PlayerPos, state.EnemyPos, !isHunter);
+                state.OpponentPos = GreedyOrRandomStep(state.OpponentPos, state.SelfPos, !isHunter);
             }
 
-            if (state.EnemyCaughtPlayer())
+            if (state.SelfCaughtOpponent())
             {
                 return isHunter ? 1f : (-1f + coinPickupBonus);
             }
         }
 
-        int distanceToOpponent = Mathf.Abs(state.EnemyPos.x - state.PlayerPos.x) + Mathf.Abs(state.EnemyPos.y - state.PlayerPos.y);
+        int distanceToOpponent = Mathf.Abs(state.SelfPos.x - state.OpponentPos.x) + Mathf.Abs(state.SelfPos.y - state.OpponentPos.y);
         
         if (isHunter)
         {
             return -distanceToOpponent / 10f;
         }
 
-        return CollectorScore(state.EnemyPos, distanceToOpponent) + coinPickupBonus;
+        return CollectorScore(state.SelfPos, distanceToOpponent) + coinPickupBonus;
     }
 
     private bool IsWinningCoinPickup(Vector2Int pos)

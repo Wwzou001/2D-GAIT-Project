@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class MCTSPlayerMovement : MonoBehaviour
+// Renamed from MCTSPlayerMovement, it read human keyboard input for whichever slot is set to Human mode
+public class MCTSHumanController : MonoBehaviour
 {
     [SerializeField] private MCTSGameManager.Slot mySlot = MCTSGameManager.Slot.A;
 
@@ -23,7 +24,7 @@ public class MCTSPlayerMovement : MonoBehaviour
         }
 
 
-        // Not player turn yet, ignore player input
+        // Not this slot turn yet, ignore input
         if (MCTSGameManager.Instance != null && !MCTSGameManager.Instance.IsSlotTurn(mySlot))
         {
             return;
@@ -67,7 +68,7 @@ public class MCTSPlayerMovement : MonoBehaviour
 
         bool moved = gridMover.TryMove(direction.Value);
 
-        // Only end turn if player acturally move, bumping into obstacle not cost player movement
+        // Only end turn if this slot acturally move, bumping into obstacle not cost player movement
         if (moved)
         {
             movesRemainingThisTurn--;

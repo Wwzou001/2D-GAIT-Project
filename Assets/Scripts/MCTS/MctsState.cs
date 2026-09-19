@@ -1,19 +1,19 @@
 using UnityEngine;
 
 // Just holds a position for the enemy and player at some point in a simulation.
-public struct MctsState
+public struct MCTSState
 {
-    public Vector2Int EnemyPos;
-    public Vector2Int PlayerPos;
+    public Vector2Int SelfPos;
+    public Vector2Int OpponentPos;
 
-    public MctsState(Vector2Int enemyPos, Vector2Int playerPos)
+    public MCTSState(Vector2Int selfPos, Vector2Int opponentPos)
     {
-        EnemyPos = enemyPos;
-        PlayerPos = playerPos;
+        SelfPos = selfPos;
+        OpponentPos = opponentPos;
     }
 
-    public bool EnemyCaughtPlayer()
+    public bool SelfCaughtOpponent()
     {
-        return EnemyPos == PlayerPos;
+        return SelfPos == OpponentPos;
     }
 }

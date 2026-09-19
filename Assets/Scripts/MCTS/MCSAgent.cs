@@ -111,53 +111,53 @@ public class MCSAgent
     // Catching the player = best result. Otherwise, ending up closer is better.
     private float RandomRollout(Vector2Int selfPos, Vector2Int opponentPos, bool opponentHasBuff)
     {
-        var state = new MctsState(selfPos, opponentPos);
+        var state = new MCTSState(selfPos, opponentPos);
         float coinPickUpBonus = 0f;
 
-        if (!isHunter && IsWinningCoinPickup(state.EnemyPos))
+        if (!isHunter && IsWinningCoinPickup(state.SelfPos))
         {
             return 5f;
         }
 
-        if (state.EnemyCaughtPlayer())
+        if (state.SelfCaughtOpponent())
         {
             return isHunter ? 1f : (-1f + coinPickUpBonus);
         }
 
         for (int step = 0; step < rolloutDepth; step++)
         {
-            state.EnemyPos = GreedyOrRandomStep(state.EnemyPos, state.PlayerPos, isHunter);
+            state.SelfPos = GreedyOrRandomStep(state.SelfPos, state.OpponentPos, isHunter);
             
             if (!isHunter)
             {
-                if (IsWinningCoinPickup(state.EnemyPos))
+                if (IsWinningCoinPickup(state.SelfPos))
                 {
                     return 5f;
                 }
 
-                if (GridSystem.Instance.IsCoin(state.EnemyPos))
+                if (GridSystem.Instance.IsCoin(state.SelfPos))
                 { 
                     coinPickUpBonus += 0.5f;
                 }
             }
-            if (state.EnemyCaughtPlayer())
+            if (state.SelfCaughtOpponent())
                 return isHunter ? 1f : (-1f + coinPickUpBonus); // caught = great for hunter, terrible for collector
 
-            state.PlayerPos = GreedyOrRandomStep(state.PlayerPos, state.EnemyPos, !isHunter); // rough guess at player behaviour
+            state.OpponentPos = GreedyOrRandomStep(state.OpponentPos, state.SelfPos, !isHunter); // rough guess at player behaviour
 
             if (opponentHasBuff)
             {
-                state.PlayerPos = GreedyOrRandomStep(state.PlayerPos, state.EnemyPos, !isHunter);
+                state.OpponentPos = GreedyOrRandomStep(state.OpponentPos, state.SelfPos, !isHunter);
             }
 
             // Symmetric check: the opponent's own move or second move when buffed might have landed it directly on self
-            if (state.EnemyCaughtPlayer())
+            if (state.SelfCaughtOpponent())
             {
                 return isHunter ? 1f : (-1f + coinPickUpBonus);
             }
         }
 
-        int distanceToOpponent = Mathf.Abs(state.EnemyPos.x - state.PlayerPos.x) + Mathf.Abs(state.EnemyPos.y - state.PlayerPos.y);
+        int distanceToOpponent = Mathf.Abs(state.SelfPos.x - state.OpponentPos.x) + Mathf.Abs(state.SelfPos.y - state.OpponentPos.y);
         // Hunter: closer is better. Collector: further is better
 
         if (isHunter)
@@ -166,7 +166,7 @@ public class MCSAgent
         }
 
         // Collector: balance stay far away with picking up coins
-        return CollectorScore(state.EnemyPos, distanceToOpponent) + coinPickUpBonus;
+        return CollectorScore(state.SelfPos, distanceToOpponent) + coinPickUpBonus;
     }
 
     private bool IsWinningCoinPickup(Vector2Int pos)

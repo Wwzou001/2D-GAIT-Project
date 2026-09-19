@@ -6,8 +6,8 @@ public class MCTSSlotController : MonoBehaviour
 {
     public enum ControlMode { Human, MCS, MCTS }
 
-    [SerializeField] private MctsEnemyController aiController;
-    [SerializeField] private MCTSPlayerMovement humanController;
+    [SerializeField] private MCTSAiController aiController;
+    [SerializeField] private MCTSHumanController humanController;
 
     [SerializeField] private ControlMode currentMode = ControlMode.Human;
 
@@ -50,8 +50,8 @@ public class MCTSSlotController : MonoBehaviour
             if (!useHuman)
             {
                 var algorithm = mode == ControlMode.MCS
-                    ? MctsEnemyController.AlgorithmType.MCS
-                    : MctsEnemyController.AlgorithmType.MCTS;
+                    ? MCTSAiController.AlgorithmType.MCS
+                    : MCTSAiController.AlgorithmType.MCTS;
                 aiController.SetAlgorithms(algorithm);
             }
         }

@@ -9,7 +9,7 @@ public class MCTSGridMover : MonoBehaviour
 
     [SerializeField] private bool canCollectCoins = true;
 
-    [SerializeField] private bool canUseFountainBuff = true; // only player have this on
+    [SerializeField] private bool canUseFountainBuff = true; // per-slot toggle, either slot can have this enabled, not tied to which one is human/AI
     [SerializeField] private int buffDurationTurns = 3;
     private int buffTurnsRemaining = 0;
 
