@@ -3109,11 +3109,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4565427594027659216, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
       propertyPath: mode
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4565427594027659216, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
       propertyPath: behaviour
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4565427594027659216, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
       propertyPath: targetMarker
