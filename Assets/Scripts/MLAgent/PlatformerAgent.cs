@@ -19,6 +19,15 @@ public class PlatformerAgent : Agent
     [SerializeField] private LayerMask enemyLayer;
     [SerializeField] private LayerMask goalLayer;
 
+    [SerializeField] private float groundCheckDistance = 0.3f;
+    [SerializeField] private float forwardCheckDistance = 0.6f;
+    [SerializeField] private float unjustifiedJumpPenalty = -0.1f;
+
+    [SerializeField] private float fixedJumpPenalty = -0.5f;
+
+    // Diable log for manualy testing
+    [SerializeField] private bool logEachStep = false;
+
     // Angles in degrees, 0 = facing right (forward), positive = up.
     private static readonly float[] ForwardAngles = { -15f, -7f, 0f, 7f, 15f };
     // Steeper downward angles (pit detection)
@@ -45,7 +54,10 @@ public class PlatformerAgent : Agent
 
     public override void OnEpisodeBegin()
     {
-        Debug.Log("OnEpisodeBegin called! Resetting to: " + (startPosition != null ? startPosition.position.ToString() : "NULL startPosition"));
+        if (logEachStep)
+        { 
+            Debug.Log("OnEpisodeBegin called! Resetting to: " + (startPosition != null ? startPosition.position.ToString() : "NULL startPosition")); 
+        }
         episodeTime = 0f;
 
         // Reset position/velocity of each game object
@@ -57,7 +69,9 @@ public class PlatformerAgent : Agent
         rb.linearVelocity = Vector2.zero;
         previousX = transform.position.x;
         closestDistanceToGoal = goalPosition != null 
-            ? Vector2.Distance(transform.position, goalPosition.position) : float.MaxValue;
+            ? Mathf.Abs(goalPosition.position.x - transform.position.x) 
+            + Mathf.Abs(goalPosition.position.y - transform.position.y) * 0.1f
+            : float.MaxValue;
         stepsSinceProgress = 0;
     }
 
@@ -95,6 +109,20 @@ public class PlatformerAgent : Agent
         // Physical state
         sensor.AddObservation(rb.linearVelocity); // 2 floats: current velocity (x, y)
         sensor.AddObservation(controller.IsGrounded); // 1 float (bool -> 0/1): grounded or airborne
+
+        if (goalPosition != null)
+        {
+            Vector2 toGoal = goalPosition.position - transform.position;
+            sensor.AddObservation(toGoal.x / 20f);
+            sensor.AddObservation(toGoal.y / 20f);
+            sensor.AddObservation(toGoal.magnitude / 20f);
+        }
+        else
+        {
+            sensor.AddObservation(0f);
+            sensor.AddObservation(0f);
+            sensor.AddObservation(0f);
+        }
     }
 
     // Cast one ray at the given angle and add two observation values:
@@ -145,17 +173,41 @@ public class PlatformerAgent : Agent
     // Action -- Countinuous branch 0: horizontal move (-1 to 1), Discrete branch 0: (0 = no, 1 = yes)
     public override void OnActionReceived(ActionBuffers actions)
     {
-        float moveInput = actions.ContinuousActions[0];
+        int moveDir = actions.DiscreteActions[0];
+        float moveInput = moveDir == 0 ? 0f : (moveDir == 1 ? -1f : 1f);
         controller.MoveHorizontal(moveInput);
 
-        int jumpInput = actions.DiscreteActions[0];
+        int jumpInput = actions.DiscreteActions[1];
+
         if (jumpInput == 1)
         {
-            controller.TryJump();
-            AddReward(-0.001f);
+            bool didJump = controller.TryJump();
+
+            if (didJump) 
+            {
+                if (controller.UsesFixedDistanceJump)
+                {
+                    AddReward(fixedJumpPenalty);
+                }
+                else
+                {
+                    bool justified = IsJumpJustified();
+                    if (!justified)
+                    {
+                        AddReward(unjustifiedJumpPenalty);
+                    }
+                    if (logEachStep)
+                    { 
+                        Debug.Log(justified ? "Jump: justified, no penalty" : $"Jump: NOT justified, penalty {unjustifiedJumpPenalty}"); 
+                    }
+                }
+            }
         }
 
-        Debug.Log($"Move: {moveInput}, Jump: {jumpInput}, Pos: {transform.position}");
+        if (logEachStep)
+        { 
+            Debug.Log($"Move: {moveInput}, Jump: {jumpInput}, Pos: {transform.position}"); 
+        }
 
         // Small per-step penalty (time penalty)
         AddReward(-0.0005f);
@@ -163,7 +215,9 @@ public class PlatformerAgent : Agent
         // Small reward for forward progress
         if (goalPosition != null)
         {
-            float distanceToGoal = Vector2.Distance(transform.position, goalPosition.position);
+            float dx = Mathf.Abs(goalPosition.position.x - transform.position.x);
+            float dy = Mathf.Abs(goalPosition.position.y - transform.position.y);
+            float distanceToGoal = dx + dy * 0.1f;
             if (distanceToGoal < closestDistanceToGoal)
             {
                 float newProgress = closestDistanceToGoal - distanceToGoal;
@@ -174,34 +228,67 @@ public class PlatformerAgent : Agent
             else
             {
                 stepsSinceProgress++;
-                if (stepsSinceProgress % 200 == 0)
-                { 
-                    AddReward(-0.5f); 
-                }
+                //if (stepsSinceProgress % 200 == 0)
+                //{ 
+                //    AddReward(-0.5f); 
+                //}
             }
         }
         previousX = transform.position.x;
     }
 
+    // Check whether there is a physical reason to jump right now: ground ahead/below doesn't continue
+    // (a gap,ledge, platform edge), or an obstacle directly in front that block walking
+    private bool IsJumpJustified()
+    {
+        float facing = Mathf.Sign(transform.localScale.x);
+
+        Vector3 feetPosition = controller.GroundCheckPoint != null ? controller.GroundCheckPoint.position : transform.position;
+        
+        // Is the ground directly below about to end?
+        Vector2 groundCheckOrigin = feetPosition + new Vector3(facing * 0.4f, 0f, 0f);
+        bool groundContinuesAhead = Physics2D.Raycast(groundCheckOrigin, Vector2.down, groundCheckDistance, obstacleLayer);
+
+        // Is there something solid directly ahead at foot height, block a walk through?
+        bool obstacleAhead = Physics2D.Raycast(feetPosition, new Vector2(facing, 0f), forwardCheckDistance, obstacleLayer);
+
+        return !groundContinuesAhead || obstacleAhead;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        float facing = Application.isPlaying ? Mathf.Sign(transform.localScale.x) : 1f;
+
+        Vector3 feetPosition = (controller != null && controller.GroundCheckPoint.position != null) ? controller.GroundCheckPoint.position : transform.position;
+
+        Vector2 groundCheckOrigin = feetPosition + new Vector3(facing * 0.4f, 0f, 0f);
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(groundCheckOrigin, groundCheckOrigin + Vector2.down * groundCheckDistance);
+        Gizmos.DrawWireSphere(groundCheckOrigin, 0.03f);
+
+        Gizmos.color = Color.blue;
+        Vector2 forwardEnd = (Vector2)feetPosition + new Vector2(facing, 0f) * forwardCheckDistance;
+        Gizmos.DrawLine(feetPosition, forwardEnd);
+    }
+
     // Lets human test the agent's action space manually (Behavior Type: Heuristic Only)
     public override void Heuristic(in ActionBuffers actionsOut)
     {
-        var continuousActions = actionsOut.ContinuousActions;
         var discreteActions = actionsOut.DiscreteActions;
 
         var keyboard = UnityEngine.InputSystem.Keyboard.current;
-        float horizontal = 0f;
+        int moveDir = 0;
         bool jumpPressed = false;
 
         if (keyboard != null)
         {
-            if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) horizontal -= 1f;
-            if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) horizontal += 1f;
-            jumpPressed = keyboard.wKey.wasPressedThisFrame || keyboard.upArrowKey.wasPressedThisFrame;
+            if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) moveDir = 1;
+            if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) moveDir = 2;
+            jumpPressed = keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed;
         }
 
-        continuousActions[0] = horizontal;
-        discreteActions[0] = jumpPressed ? 1 : 0;
+        discreteActions[0] = moveDir;
+        discreteActions[1] = jumpPressed ? 1 : 0;
     }
 
     // Reward hooks

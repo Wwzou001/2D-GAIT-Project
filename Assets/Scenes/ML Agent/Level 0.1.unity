@@ -399,6 +399,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1789537691}
     - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: fixedJumpPenalty
+      value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: goalLayer.m_Bits
       value: 256
       objectReference: {fileID: 0}
@@ -417,10 +421,10 @@ PrefabInstance:
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Model
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 5022602860645237092, guid: f1cde19d445ceb14787c896dd78d8a52, type: 3}
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_BehaviorType
-      value: 0
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 786567871989990207, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Material
