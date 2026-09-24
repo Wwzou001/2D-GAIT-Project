@@ -10,6 +10,7 @@ public class GridMover : MonoBehaviour
 
     [SerializeField] private bool canCollectCoins = true;
     [SerializeField] private bool canCollectKeys = true; 
+    [SerializeField] private bool isPlayer = false; 
 
 // new obstacle 
     [SerializeField] private float slowCooldownDuration = 1f;
@@ -37,7 +38,40 @@ public class GridMover : MonoBehaviour
 
         Vector2Int targetPos = GridPosition + DirectionToOffset(dir);
 
-        if (!GridSystem.Instance.IsInBounds(targetPos))
+        //player is trying to move into the door tile
+        if (targetPos == GridSystem.Instance.TopDoorGridPosition)
+        {
+            //only players can enter
+            if (!isPlayer)
+                return false;
+
+            //player needs the key
+            if (GameManager.Instance != null &&
+                !GameManager.Instance.HasKey)
+            {
+                Debug.Log("Door is locked. You need to find the key first.");
+                return false;
+            }
+        }
+
+        if (targetPos == GridSystem.Instance.BottomDoorGridPosition){
+            
+            //only players can enter
+            if (!isPlayer)
+                return false;
+
+            // Can't go backwards from room 0
+            if (RoomManager.Instance == null ||
+                RoomManager.Instance.CurrentRoom <= 0)
+            {
+                return false;
+            }
+        }
+        
+
+        bool isDoor = targetPos == GridSystem.Instance.TopDoorGridPosition || targetPos == GridSystem.Instance.BottomDoorGridPosition;
+
+        if (!GridSystem.Instance.IsInBounds(targetPos) && !isDoor)
             return false; // blocked: edge of the grid
 
         if (GridSystem.Instance.IsObstacle(targetPos))
@@ -53,6 +87,20 @@ public class GridMover : MonoBehaviour
         }
 
         OnEnterCell(targetPos);
+
+        //moving to the next room
+        if (isPlayer && targetPos == GridSystem.Instance.TopDoorGridPosition)
+        {
+            RoomManager.Instance.EnterNextRoom();
+            return true;
+        }
+
+        //moving to the previous room
+        if (isPlayer && targetPos == GridSystem.Instance.BottomDoorGridPosition)
+        {
+            RoomManager.Instance.EnterPreviousRoom();
+            return true;
+        }
 
         if (GameManager.Instance != null)
         {
@@ -84,5 +132,13 @@ public class GridMover : MonoBehaviour
             case Direction.Right: return new Vector2Int(1, 0);
             default: return Vector2Int.zero;
         }
+    }
+
+
+    //used to set the players position when they enter a new room
+    public void SetGridPosition(Vector2Int position)
+    {
+        GridPosition = position;
+        transform.position = GridSystem.Instance.GridToWorld(position);
     }
 }

@@ -41,10 +41,11 @@ private Dictionary<Vector2Int, GameObject> activeKeySprites = new Dictionary<Vec
             return;
         }
         BuildGridVisuals();
-        SpawnAllKeys();
+        //SpawnAllKeys();
 
         GridSystem.Instance.CoinCollected += HandleCoinCollected;
-        GridSystem.Instance.KeyCollected += HandleKeyCollected;   
+        GridSystem.Instance.KeyCollected += HandleKeyCollected;  
+        GridSystem.Instance.KeySpawned += HandleKeySpawned; 
     }
 
     private void OnDestroy()
@@ -53,32 +54,45 @@ private Dictionary<Vector2Int, GameObject> activeKeySprites = new Dictionary<Vec
         {
             GridSystem.Instance.CoinCollected -= HandleCoinCollected;
             GridSystem.Instance.KeyCollected -= HandleKeyCollected;
+            GridSystem.Instance.KeySpawned -= HandleKeySpawned;
         }
     }
- // key spawn and collect
-    private void SpawnAllKeys()
+
+
+    private void HandleKeySpawned(Vector2Int pos)
     {
         if (keySprite == null)
         {
             Debug.LogWarning("CoinVisualizer: no key sprite assigned in the Inspector.");
             return;
         }
-
-        int width = GridSystem.Instance.Width;
-        int height = GridSystem.Instance.Height;
-
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                Vector2Int pos = new Vector2Int(x, y);
-                if (GridSystem.Instance.IsKey(pos))
-                {
-                    SpawnKeySprite(pos);
-                }
-            }
-        }
+        SpawnKeySprite(pos);
     }
+
+//  // key spawn and collect
+//     private void SpawnAllKeys()
+//     {
+//         if (keySprite == null)
+//         {
+//             Debug.LogWarning("CoinVisualizer: no key sprite assigned in the Inspector.");
+//             return;
+//         }
+
+//         int width = GridSystem.Instance.Width;
+//         int height = GridSystem.Instance.Height;
+
+//         for (int x = 0; x < width; x++)
+//         {
+//             for (int y = 0; y < height; y++)
+//             {
+//                 Vector2Int pos = new Vector2Int(x, y);
+//                 if (GridSystem.Instance.IsKey(pos))
+//                 {
+//                     SpawnKeySprite(pos);
+//                 }
+//             }
+//         }
+//     }
 
     private void SpawnKeySprite(Vector2Int gridPos)
     {

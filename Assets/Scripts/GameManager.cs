@@ -15,14 +15,13 @@ public class GameManager : MonoBehaviour
     [SerializeField] private TMP_Text resultText;
     [SerializeField] private TMP_Text coinCounterText;
 
-    [Header("Door")]
-    [SerializeField] private Vector2Int doorGridPosition;
     
     private bool hasKey = false; 
 
     private bool gameOver = false;
 
     public bool GameOver => gameOver;
+    public bool HasKey => hasKey;
 
     private void Awake()
     {
@@ -71,12 +70,6 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        // WIN CONDITION
-        // Player must have the key AND be standing on the door's cell.
-        if (hasKey && player.GridPosition == doorGridPosition)
-        {
-            WinGame();
-        }
     }
 
     private void UpdateCoinCounter()
@@ -91,7 +84,7 @@ public class GameManager : MonoBehaviour
             int remainingKeys = GridSystem.Instance.RemainingKeys();
             int collectedKeys = totalKeys - remainingKeys;
 
-            coinCounterText.text = $"Coins: {collectedCoins} / {totalCoins}\nKey: {collectedKeys} / {totalKeys}";
+            coinCounterText.text = $"Coins: {collectedCoins} / {totalCoins}\nKey: {(hasKey ? 1 : 0)} / 1";
         }
     }
 
@@ -128,5 +121,29 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene(
             SceneManager.GetActiveScene().buildIndex
         );
+    }
+
+    public void TryEnterDoor()
+    {
+        if (gameOver)
+            return;
+
+        if (hasKey)
+        {
+            WinGame();
+        }
+        else
+        {
+            Debug.Log("Door is locked. You need to find the key first.");
+        }
+    }
+
+    public void StartNewRoom()
+    {
+        hasKey = false;
+
+        UpdateCoinCounter();
+
+        Debug.Log("New room started.");
     }
 }

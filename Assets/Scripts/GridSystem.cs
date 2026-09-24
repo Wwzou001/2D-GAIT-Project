@@ -15,12 +15,23 @@ public class GridSystem : MonoBehaviour
     public int Width => width;
     public int Height => height;
 
+    public int DoorX => (width - 1) / 2;
+
+    public Vector2Int TopDoorGridPosition => new Vector2Int(DoorX, height);
+
+    public Vector2Int BottomDoorGridPosition => new Vector2Int(DoorX, -1);
+
     [SerializeField] private int coinCount = 3;
     [SerializeField] private int obstacleCount = 2; // tweak as needed
 
     [SerializeField] private int fountainCount = 0; // default off, only MCTS need to change value
 
     [SerializeField] private int keyCount = 1; // key
+
+    [SerializeField] private GameObject doorPrefab;
+
+    private GameObject spawnedDoor;
+    private bool doorUnlocked = false;
 
     // Confirm character position rule, player bottom left, enemy top right
     public Vector2Int playerStart => new Vector2Int(0, 0);
@@ -32,6 +43,7 @@ public class GridSystem : MonoBehaviour
 
     public event Action<Vector2Int> CoinCollected;
     public event Action<Vector2Int> KeyCollected; 
+    public event Action<Vector2Int> KeySpawned; 
 
     public int TotalKeys => keyCount;
 
@@ -43,6 +55,7 @@ public class GridSystem : MonoBehaviour
         Instance = this;
         grid = new CellType[width, height];
         InitialiseGrid();
+        SpawnDoor();
     }
 
     private void SpawnObstacleColliders()
@@ -87,7 +100,6 @@ public class GridSystem : MonoBehaviour
         PlaceRandomly(CellType.Obstacle, obstacleCount, isObstacle: true);
         PlaceFountains(fountainCount);
         PlaceRandomly(CellType.Slow, slowCount, isObstacle: false);  // new obstacle
-        PlaceRandomly(CellType.Key, keyCount, isObstacle: false); // key
 
         if (spawnColliders)
         {
@@ -211,9 +223,11 @@ public class GridSystem : MonoBehaviour
 
     public void CollectKey(Vector2Int pos)
     {
-        if (IsKey(pos))
+        if (IsKey(pos)){
             grid[pos.x, pos.y] = CellType.Empty;
+            doorUnlocked = true;
             KeyCollected?.Invoke(pos);   
+        }
     }
 
     // Check if any fountain within surround 8 cells
@@ -243,6 +257,12 @@ public class GridSystem : MonoBehaviour
         { 
             grid[pos.x, pos.y] = CellType.Empty;
             CoinCollected?.Invoke(pos);
+
+            //if there are no more coins then spawn the key
+            if (RemainingCoins() == 0)
+            {
+                SpawnKey();
+            }
         }
     }
 
@@ -280,4 +300,66 @@ public class GridSystem : MonoBehaviour
     {
         return new Vector2Int(Mathf.RoundToInt(worldPos.x), Mathf.RoundToInt(worldPos.y));
     }
+
+
+
+    private void SpawnDoor()
+    {
+        if (doorPrefab == null)
+        {
+            Debug.LogWarning("No door prefab assigned!");
+            return;
+        }
+
+        //spawn door at top middle, if even grid then spawn in one space left
+         int doorX = (width - 1) / 2;
+        int doorY = height;
+
+        Vector3 doorWorldPosition = new Vector3(
+            doorX,
+            doorY + 0.1f,
+            -7f
+        );
+
+        spawnedDoor = Instantiate(
+            doorPrefab,
+            doorWorldPosition,
+            Quaternion.identity
+        );
+    }
+
+    private void SpawnKey()
+    {
+        int safetyLimit = 200;
+
+        while (safetyLimit-- > 0)
+        {
+            int x = UnityEngine.Random.Range(0, width);
+            int y = UnityEngine.Random.Range(0, height);
+
+            Vector2Int pos = new Vector2Int(x, y);
+
+            if (grid[x, y] != CellType.Empty)
+                continue;
+
+            if (pos == playerStart || pos == npcStart)
+                continue;
+
+            grid[x, y] = CellType.Key;
+
+            Debug.Log($"Key spawned at {pos}");
+
+            KeySpawned?.Invoke(pos);
+
+            return;
+        }
+
+        Debug.LogWarning("Could not find a valid position for the key.");
+    }
+
+    public bool IsDoorUnlocked()
+    {
+        return doorUnlocked;
+    }
 }
+
