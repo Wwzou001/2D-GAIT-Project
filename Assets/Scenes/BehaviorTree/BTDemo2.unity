@@ -548,6 +548,7 @@ MonoBehaviour:
   obstacleCount: 3
   fountainCount: 0
   keyCount: 1
+  doorPrefab: {fileID: 0}
   slowCount: 2
 --- !u!4 &568787190
 Transform:
@@ -785,11 +786,6 @@ RectTransform:
   m_AnchoredPosition: {x: 325, y: 10}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!1 &695397168 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6603238842634290237, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
-  m_PrefabInstance: {fileID: 1776726554}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &952819975
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1904,7 +1900,7 @@ MonoBehaviour:
   endGamePanel: {fileID: 1887348294}
   resultText: {fileID: 1953112427}
   coinCounterText: {fileID: 1975560832}
-  doorGridPosition: {x: 0, y: 0}
+  fullGame: 0
 --- !u!4 &1174288609
 Transform:
   m_ObjectHideFlags: 0
@@ -2280,41 +2276,12 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: -3329728343462389075, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
   m_PrefabInstance: {fileID: 1776726554}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 695397168}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c94a24378ae6d5f4480decc461f3ed9a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridMover
---- !u!114 &1561357140
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 695397168}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e464cf54fd97c4948b361cad80e31c34, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovementModeController
-  mode: 0
-  toggleKey: 3
-  behaviour: 1
-  maxSpeed: 5
-  maxAccel: 10
-  accelTime: 0.25
-  arriveSlowRadius: 2
-  avoidance:
-    Enabled: 0
-    ObstacleLayer:
-      m_Bits: 0
-    LookAheadDistance: 2
-    CheckRadius: 0.4
-    AngleStep: 10
-  rb: {fileID: 0}
-  playerMovement: {fileID: 0}
-  targetPos: {x: 0, y: 0}
 --- !u!1001 &1776726554
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2414,10 +2381,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 6603238842634290237, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1561357140}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
 --- !u!1 &1801152026
 GameObject:
@@ -2463,6 +2427,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72f0229c14d347248a754c2b59349e82, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridVisulizer
+  gridSystem: {fileID: 0}
   floorSprite: {fileID: -5000103570061886301, guid: d64b8b5ae0ae910428f549a513d55414, type: 3}
   obstacleSprite: {fileID: 5534413525631299974, guid: 136ae7ed7e863294cb48cf779405c8a5, type: 3}
   coinSprite: {fileID: 6522468604666715935, guid: 6e286d7b467f4fc4dbef94e4c3140f8e, type: 3}

@@ -52,7 +52,10 @@ public class GridSystem : MonoBehaviour
 
     void Awake()
     {
-        Instance = this;
+        if (Instance == null)
+        {
+            Instance = this;
+        }
         grid = new CellType[width, height];
         InitialiseGrid();
         SpawnDoor();
@@ -75,7 +78,9 @@ public class GridSystem : MonoBehaviour
                 if (IsObstacle(pos))
                 {
                     GameObject go = new GameObject($"ObstacleCollider_{x}_{y}");
+                    go.transform.SetParent(transform);
                     go.transform.position = GridToWorld(pos);
+                    spawnedObstacleColliders.Add(go);
 
                     Rigidbody2D rb = go.AddComponent<Rigidbody2D>();
                     rb.bodyType = RigidbodyType2D.Static;
@@ -293,12 +298,15 @@ public class GridSystem : MonoBehaviour
 
     public Vector3 GridToWorld(Vector2Int gridPos)
     {
-        return new Vector3(gridPos.x, gridPos.y, 0f);
+        //assume all gridsystems are at 0,0 and they can effect only their rooms
+        Vector3 localPosition = new Vector3(gridPos.x, gridPos.y, 0f);
+        return transform.TransformPoint(localPosition);
     }
 
     public Vector2Int WorldToGrid(Vector3 worldPos)
-    {
-        return new Vector2Int(Mathf.RoundToInt(worldPos.x), Mathf.RoundToInt(worldPos.y));
+    {   
+        Vector3 localPosition = transform.InverseTransformPoint(worldPos);
+        return new Vector2Int(Mathf.RoundToInt(localPosition.x), Mathf.RoundToInt(localPosition.y));
     }
 
 
@@ -315,16 +323,19 @@ public class GridSystem : MonoBehaviour
          int doorX = (width - 1) / 2;
         int doorY = height;
 
-        Vector3 doorWorldPosition = new Vector3(
+        Vector3 doorLocalPosition = new Vector3(
             doorX,
             doorY + 0.1f,
             -7f
         );
 
+        Vector3 doorWorldPosition = transform.TransformPoint(doorLocalPosition);
+
         spawnedDoor = Instantiate(
             doorPrefab,
             doorWorldPosition,
-            Quaternion.identity
+            Quaternion.identity,
+            transform
         );
     }
 
@@ -360,6 +371,18 @@ public class GridSystem : MonoBehaviour
     public bool IsDoorUnlocked()
     {
         return doorUnlocked;
+    }
+
+    public void SetAsActiveGrid()
+    {
+        Instance = this;
+    }
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
     }
 }
 

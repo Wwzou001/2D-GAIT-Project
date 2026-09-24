@@ -2,95 +2,131 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 
-public class GameManager : MonoBehaviour
+public class FullGameManager : MonoBehaviour
 {
-    public static GameManager Instance { get; private set; }
+    [Header("Managers")]
+    [SerializeField] private RoomManager roomManager;
 
-    [Header("Characters")]
+    [Header("Player")]
     [SerializeField] private GridMover player;
-    [SerializeField] private GridMover enemy;
 
     [Header("UI")]
     [SerializeField] private GameObject endGamePanel;
     [SerializeField] private TMP_Text resultText;
     [SerializeField] private TMP_Text coinCounterText;
 
-    [Header("FullGame?")]
-    [SerializeField] private bool fullGame = false;
 
-    
-    private bool hasKey = false; 
+    //tjhese are assigned whenever RoomManager creates a room
+    private GridSystem currentGrid;
+    private GridMover currentEnemy;
 
+
+    private bool hasKey = false;
     private bool gameOver = false;
+
 
     public bool GameOver => gameOver;
     public bool HasKey => hasKey;
-    public bool FullGame => fullGame;
+
 
     private void Awake()
     {
-        Instance = this;
-
         if (endGamePanel != null)
+        {
             endGamePanel.SetActive(false);
+        }
     }
+
 
     private void Start()
     {
-        UpdateCoinCounter();
-        if (GridSystem.Instance != null)
-        {
-            GridSystem.Instance.KeyCollected += HandleKeyCollected;
-        }
     }
+
+
+    //called by RoomManager whenever a new room is created
+    public void SetCurrentRoom(
+        GridSystem gridSystem,
+        GridMover enemy
+    )
+    {
+        //remove old room
+        if (currentGrid != null)
+        {
+            currentGrid.KeyCollected -= HandleKeyCollected;
+        }
+        currentGrid = gridSystem;
+        currentEnemy = enemy;
+
+
+        //add new room
+        if (currentGrid != null)
+        {
+            currentGrid.KeyCollected += HandleKeyCollected;
+        }
+        StartNewRoom();
+    }
+
 
     private void HandleKeyCollected(Vector2Int pos)
     {
         hasKey = true;
+        UpdateCoinCounter();
     }
+
 
     private void OnDestroy()
     {
-        if (GridSystem.Instance != null)
+        if (currentGrid != null)
         {
-            GridSystem.Instance.KeyCollected -= HandleKeyCollected;
+            currentGrid.KeyCollected -= HandleKeyCollected;
         }
     }
+
 
     public void CheckGameState()
     {
         if (gameOver)
             return;
+        if (currentGrid == null)
+            return;
+
+
 
         // Update coin counter after every successful move
         UpdateCoinCounter();
 
         // LOSS CONDITION
         // Player and enemy occupy the same grid square.
-        if (player != null && enemy != null &&
-            player.GridPosition == enemy.GridPosition)
+        if (player != null &&
+            currentEnemy != null &&
+            player.GridPosition == currentEnemy.GridPosition)
         {
             LoseGame();
             return;
         }
-
     }
+
 
     private void UpdateCoinCounter()
     {
-        if (coinCounterText != null && GridSystem.Instance != null)
-        {
-            int totalCoins = GridSystem.Instance.TotalCoins;
-            int remainingCoins = GridSystem.Instance.RemainingCoins();
-            int collectedCoins = totalCoins - remainingCoins;
+        if (coinCounterText == null)
+            return;
 
-            int totalKeys = GridSystem.Instance.TotalKeys;
-            int remainingKeys = GridSystem.Instance.RemainingKeys();
-            int collectedKeys = totalKeys - remainingKeys;
 
-            coinCounterText.text = $"Coins: {collectedCoins} / {totalCoins}\nKey: {(hasKey ? 1 : 0)} / 1";
-        }
+        if (currentGrid == null)
+            return;
+
+
+        int totalCoins = currentGrid.TotalCoins;
+        int remainingCoins = currentGrid.RemainingCoins();
+        int collectedCoins = totalCoins - remainingCoins;
+
+
+        coinCounterText.text =
+            $"Coins: {collectedCoins} / {totalCoins}\n" +
+            $"Key: {(hasKey ? 1 : 0)} / 1";
     }
+
 
     private void WinGame()
     {
@@ -98,12 +134,19 @@ public class GameManager : MonoBehaviour
 
         Debug.Log("GAME OVER - PLAYER WINS!");
 
+
         if (endGamePanel != null)
+        {
             endGamePanel.SetActive(true);
+        }
+
 
         if (resultText != null)
+        {
             resultText.text = "YOU WIN!";
+        }
     }
+
 
     private void LoseGame()
     {
@@ -111,12 +154,19 @@ public class GameManager : MonoBehaviour
 
         Debug.Log("GAME OVER - PLAYER LOSES!");
 
+
         if (endGamePanel != null)
+        {
             endGamePanel.SetActive(true);
+        }
+
 
         if (resultText != null)
+        {
             resultText.text = "YOU LOSE!";
+        }
     }
+
 
     public void RestartGame()
     {
@@ -127,27 +177,34 @@ public class GameManager : MonoBehaviour
         );
     }
 
+
     public void TryEnterDoor()
     {
         if (gameOver)
             return;
 
-        if (!hasKey)
+        if (currentGrid == null)
+        {
+            Debug.LogWarning("No current room grid.");
+            return;
+        }
+
+        //let the ROOM decide if its door is unlocked.
+        if (!currentGrid.IsDoorUnlocked())
         {
             Debug.Log("Door is locked. You need to find the key first.");
             return;
         }
 
-        // Full game = move to another room
-        if (fullGame && RoomManager.Instance != null)
+        if (roomManager == null)
         {
-            RoomManager.Instance.EnterNextRoom();
+            Debug.LogError("No RoomManager assigned.");
+            return;
         }
-        else
-        {
-            WinGame();
-        }
+
+        roomManager.EnterNextRoom();
     }
+
 
     public void StartNewRoom()
     {

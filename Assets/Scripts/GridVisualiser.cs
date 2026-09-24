@@ -2,7 +2,8 @@ using UnityEngine;
 using System.Collections.Generic;
 
 public class GridVisulizer : MonoBehaviour
-{
+{   
+    [SerializeField] private GridSystem gridSystem;
     [SerializeField] private Sprite floorSprite;
     [SerializeField] private Sprite obstacleSprite;
     [SerializeField] private Sprite coinSprite;
@@ -32,6 +33,28 @@ public class GridVisulizer : MonoBehaviour
 private Dictionary<Vector2Int, GameObject> activeKeySprites = new Dictionary<Vector2Int, GameObject>();
 
     private readonly Dictionary<Vector2Int, GameObject> coinObjects = new Dictionary<Vector2Int, GameObject>();
+
+    //For the multi room scenes, grid visualiser needs to know what gridsystem its paired with, if null then just assume we are using an old scene with only 1 room
+    private void Awake()
+    {
+        //first try to find a GridSystem on this object
+        if (gridSystem == null)
+        {
+            gridSystem = GetComponent<GridSystem>();
+        }
+
+        //then try to find one on the parent room
+        if (gridSystem == null)
+        {
+            gridSystem = GetComponentInParent<GridSystem>();
+        }
+
+        //legacy fallback for one room scenes
+        if (gridSystem == null)
+        {
+            gridSystem = GridSystem.Instance;
+        }
+    }
 
     void Start()
     {
