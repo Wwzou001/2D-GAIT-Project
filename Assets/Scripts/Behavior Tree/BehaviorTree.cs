@@ -4,7 +4,7 @@ using UnityEngine;
 public class BehaviorTree
 {
 
-
+    public static Node lastNodeRan;
 
     //node class, none of the "nodes" should use this its just the parent class, everything should either be leaf or selector/sequence
     public class Node
@@ -12,6 +12,7 @@ public class BehaviorTree
 
         public enum State
         {
+            Inactive,
             Running,
             Success,
             Failure
@@ -22,19 +23,31 @@ public class BehaviorTree
         public readonly List<Node> children = new();
         protected int currentChild;
 
+
+
         public Node(string name = "Node"){
             this.name = name;
         }
 
-        public virtual Node GetActiveNode()
+        public State currentState { get; protected set; } = State.Inactive;
+        public State displayState { get; protected set; } = State.Inactive;
+
+
+        public virtual List<Node> GetActivePath()
         {
+            List<Node> path = new List<Node>();
+
+            path.Add(this);
+
             if (children.Count == 0)
-                return this;
+                return path;
 
             if (currentChild >= children.Count)
-                return this;
+                return path;
 
-            return children[currentChild].GetActiveNode();
+            path.AddRange(children[currentChild].GetActivePath());
+
+            return path;
         }
 
 
@@ -42,8 +55,45 @@ public class BehaviorTree
 
         public virtual State Process() => children[currentChild].Process();
 
+
+        
+        //UI updater (visual states and display states are different)
+        public virtual void UpdateDisplay(float deltaTime)
+        {
+            if (!BehaviorTreeWalkthrough.Enabled)
+            {
+                displayState = currentState;
+            }
+
+            foreach (Node child in children)
+            {
+                child.UpdateDisplay(deltaTime);
+            }
+        }
+
+        public virtual void ResetDisplay()
+        {
+            displayState = State.Inactive;
+
+            foreach (Node child in children)
+            {
+                child.ResetDisplay();
+            }
+        }
+
+        public void SetDisplayState(State state)
+        {
+            displayState = state;
+        }
+
+       
+
         public virtual void Reset(){
             currentChild = 0;
+
+            currentState = State.Inactive;
+            displayState = State.Inactive;
+            
             foreach (var child in children){
                 child.Reset();
             }
@@ -59,24 +109,57 @@ public class BehaviorTree
     public class Leaf : Node{
 
         readonly Behaviors behavior;
+        
+
+        
 
         public Leaf(Behaviors behavior, string name = "Leaf"): base(name)
         {
             this.behavior = behavior;
         }
 
+        //Normally "return Behavior.Process()" is fine but to build the UI I also need to store the last known node and its completion state.
         public override State Process()
         {
-            return behavior.Process();
+            if (BehaviorTreeWalkthrough.Enabled)
+            {
+                BehaviorTreeWalkthrough.EnterNode(this);
+            }
+
+            currentState = behavior.Process();
+
+            if (currentState == State.Success ||
+                currentState == State.Failure)
+            {
+                BehaviorTree.lastNodeRan = this;
+            }
+
+            if (BehaviorTreeWalkthrough.Enabled)
+            {
+                BehaviorTreeWalkthrough.ExitNode(
+                    this,
+                    currentState
+                );
+            }
+            else
+            {
+                displayState = currentState;
+            }
+
+            return currentState;
         }
 
+    public override void Reset()
+    {
+        currentState = State.Inactive;
+        displayState = State.Inactive;
 
-        public override void Reset(){
-            behavior.Reset();
-        }
+        behavior.Reset();
+    }
+
 
   
-    }
+}
 
 
 
@@ -85,42 +168,74 @@ public class BehaviorTree
     // Selector nodes will attempt to execute all children nodes - if any succeed then the selector stops trying to execute child nodes and succeeds
     public class Selector : Node {
 
+
+
         public Selector(string name = "Selector") : base(name){}
 
-        public override State Process(){
+        public override State Process()
+        {   
 
-            if (currentChild < children.Count){
-                
-                State state = children[currentChild].Process();
+            if (BehaviorTreeWalkthrough.Enabled)
+            {
+                BehaviorTreeWalkthrough.EnterNode(this);
+            }
+
+            if (children.Count == 0)
+            {
+                currentState = State.Failure;
+                BehaviorTreeWalkthrough.ExitNode(this, currentState);
+                return currentState;
+            }
+
+            for (int i = 0; i < children.Count; i++){
+                currentChild = i;
+
+                State state = children[i].Process();
+
 
                 switch (state){
 
                     //if child is still running then the selector is still running
                     case State.Running:
-                        return State.Running;
+                        currentState = State.Running;
+                        for (int j = i + 1; j < children.Count; j++){
+                            children[j].Reset();
+                        }
+                        BehaviorTreeWalkthrough.ExitNode(this, currentState);
+                        return currentState;
 
                     //if the child is successful then I am successful and I do not need to keep running child nodes
                     case State.Success:
-                        Reset();
-                        return State.Success;
+                        currentState = State.Success;
+
+                        for (int j = i + 1; j < children.Count; j++){
+                            children[j].Reset();
+                        }
+                        BehaviorTreeWalkthrough.ExitNode(this, currentState);
+                        return currentState;
 
                     //Child Failed so I will attempt to run the next child, therefore i am still running
-                    default:
-                        currentChild++;
-                        return State.Running;
+                    case State.Failure:
+                        break;
                 }
+
             }
             //If the selector node runs out of child nodes and none are successful then the selector node fails
-            Reset();
-            return State.Failure;
+            currentState = State.Failure;
+            BehaviorTreeWalkthrough.ExitNode(this, currentState);
+            return currentState;
 
         }
+
     }
+    
 
 
     //Sequence nodes will execute all child nodes processes - if any fail the sequence node fails
 
     public class Sequence : Node {
+
+
 
         public Sequence(string name = "Sequence") : base(name){}
 
@@ -128,39 +243,66 @@ public class BehaviorTree
         //The Process for a sequence node is to check all of the childrens status'
         // If any children fail the sequence node will fail as well
 
-        public override State Process(){
-            
+        public override State Process()
+        {
 
-            if(currentChild < children.Count){
+            if (BehaviorTreeWalkthrough.Enabled)
+            {
+                BehaviorTreeWalkthrough.EnterNode(this);
+            }
 
-                State state = children[currentChild].Process();
+            if (children.Count == 0)
+            {
+                currentState = State.Success;
+                BehaviorTreeWalkthrough.ExitNode(this, currentState);
+                return currentState;
+            }
 
-                
-                switch (state){
+            for (int i = 0; i < children.Count; i++)
+            {
+                currentChild = i;
+
+                State state = children[i].Process();
+
+
+                switch (state)
+                {
 
                     //Child is still running so i am still running
                     case State.Running:
-                        return State.Running;
+                        currentState = State.Running;
+                        for (int j = i + 1; j < children.Count; j++){
+                            children[j].Reset();
+                        }
+                        BehaviorTreeWalkthrough.ExitNode(this, currentState);
+                        return currentState;
 
                     //Child has failed so i have failed
                     case State.Failure:
-                        //Unsure if reset early if sequence fails? Will check Later
-                        Reset();
-                        return State.Failure;
+                        
+                        currentState = State.Failure;
+                        for (int j = i + 1; j < children.Count; j++){
+                            children[j].Reset();
+                        }
+                        BehaviorTreeWalkthrough.ExitNode(this, currentState);
+                        return currentState;
 
                     //Child succeeded so i will check the next child
-                    default:
-                        currentChild++;
-                        return currentChild == children.Count ? State.Success : State.Running;
-
+                    case State.Success:
+                        break;
                 }
             }
-
             //After every child is checked we Reset
-            Reset();
-            return State.Success;
+            currentState = State.Success;
+            BehaviorTreeWalkthrough.ExitNode(this, currentState);
+
+            return currentState;
 
         }
+
+
     }
 
 }
+
+
