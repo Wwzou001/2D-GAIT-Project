@@ -60,7 +60,6 @@ public class PlatformerGameManager : MonoBehaviour
 
         if (trainingMode)
         {
-            ResetForNextEpisode();
             return;
         }
 
@@ -86,7 +85,6 @@ public class PlatformerGameManager : MonoBehaviour
 
         if (trainingMode)
         {
-            ResetForNextEpisode();
             return;
         }
 
@@ -104,7 +102,7 @@ public class PlatformerGameManager : MonoBehaviour
     }
 
     // Training mode equivalent of RestartLevel()
-    private void ResetForNextEpisode()
+    public void ResetForNextEpisode()
     {
         levelOver = false;
         coinsCollected = 0;

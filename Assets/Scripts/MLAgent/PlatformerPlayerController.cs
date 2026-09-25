@@ -31,6 +31,8 @@ public class PlatformerPlayerController : MonoBehaviour
     private bool isGrounded;
     private float horizontalInput;
 
+    private Coroutine jumpCoroutine;
+
     public bool ExternallyControlled { get; set; } = false;
 
     public bool IsGrounded => isGrounded;
@@ -98,13 +100,24 @@ public class PlatformerPlayerController : MonoBehaviour
             float facing = Mathf.Sign(transform.localScale.x);
             Vector2 landingSpot = (Vector2)transform.position + new Vector2(facing * fixedJumpDistanceX, 0f);
 
-            StartCoroutine(FixedDistanceJumpRoutine(landingSpot));
+            jumpCoroutine = StartCoroutine(FixedDistanceJumpRoutine(landingSpot));
         }
         else
         { 
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce); 
         }
         return true;
+    }
+
+    public void CancleJump()
+    {
+        if (jumpCoroutine != null)
+        {
+            StopCoroutine(jumpCoroutine);
+            jumpCoroutine = null;
+        }
+        isJumping = false;
+        rb.linearVelocity = Vector2.zero;
     }
 
     private System.Collections.IEnumerator FixedDistanceJumpRoutine(Vector2 landingSpot)

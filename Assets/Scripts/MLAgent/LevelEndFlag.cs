@@ -2,11 +2,16 @@ using UnityEngine;
 
 public class LevelEndFlag : MonoBehaviour
 {
+    private bool triggeredThisEpisode = false;
+
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (triggeredThisEpisode) return; // prevent repeat
         if (PlatformerGameManager.Instance != null && PlatformerGameManager.Instance.LevelOver) return;
 
         if (!other.CompareTag("Player")) return;
+
+        triggeredThisEpisode = true;
 
         if (PlatformerGameManager.Instance != null)
         {
@@ -19,5 +24,11 @@ public class LevelEndFlag : MonoBehaviour
         {
             agent.OnGoalReached();
         }
+    }
+
+    // New episode reset
+    public void ResetTrigger()
+    {
+        triggeredThisEpisode = false;
     }
 }

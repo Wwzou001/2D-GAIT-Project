@@ -12,6 +12,8 @@ public class PlatformerAgent : Agent
     [SerializeField] private PlatformerPlayerController controller;
     [SerializeField] private Transform startPosition; // where to reset the agent at the start of each episode
     [SerializeField] private Transform goalPosition; // the level end flag -- use to reward getting closer
+    [SerializeField] private LevelRandomizer levelRandomizer; // randomise start/goal direction and obstacle placement each episode
+    [SerializeField] private LevelEndFlag levelEndFlag;
 
     // Raycast observation
     [SerializeField] private float rayLength = 6f;
@@ -41,7 +43,13 @@ public class PlatformerAgent : Agent
     private float closestDistanceToGoal; // shortest distance to goal achieved so far this episode
     private int stepsSinceProgress; // steps since the last new best distance was reached
 
-    [SerializeField] private float maxEpisodeSectonds = 20f; // safety cap per episode
+    [SerializeField] private float maxEpisodeSeconds = 20f; // safety cap per episode
+
+    private bool goalReachedThisEpisode = false;
+
+    private float episodeStartTime;
+    [SerializeField] private float episodeStartFreezeDuration = 0.1f;
+
 
     public override void Initialize()
     {
@@ -54,11 +62,35 @@ public class PlatformerAgent : Agent
 
     public override void OnEpisodeBegin()
     {
+        // Cancle jump first
+        if (controller != null)
+        {
+            controller.CancleJump();
+        }
+
+        // Randomise goal direction/distacne and obstacle placement before anything below read goalPos
+        if (levelRandomizer != null)
+        {
+            levelRandomizer.RandomiseLevel();
+        }
+
+        if (PlatformerGameManager.Instance != null)
+        {
+            PlatformerGameManager.Instance.ResetForNextEpisode();
+        }
+
         if (logEachStep)
         { 
             Debug.Log("OnEpisodeBegin called! Resetting to: " + (startPosition != null ? startPosition.position.ToString() : "NULL startPosition")); 
         }
         episodeTime = 0f;
+
+        if (levelEndFlag != null)
+        {
+            levelEndFlag.ResetTrigger();
+        }
+
+        goalReachedThisEpisode = false;
 
         // Reset position/velocity of each game object
         if (startPosition != null)
@@ -67,19 +99,24 @@ public class PlatformerAgent : Agent
             transform.position = startPosition.position;
         }
         rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        controller.MoveHorizontal(0f);
+
         previousX = transform.position.x;
         closestDistanceToGoal = goalPosition != null 
             ? Mathf.Abs(goalPosition.position.x - transform.position.x) 
             + Mathf.Abs(goalPosition.position.y - transform.position.y) * 0.1f
             : float.MaxValue;
         stepsSinceProgress = 0;
+
+        episodeStartTime = Time.time;
     }
 
     private void FixedUpdate()
     {
         // Episode timeout to prevents an agent do nothing forever
         episodeTime += Time.fixedDeltaTime;
-        if (episodeTime > maxEpisodeSectonds)
+        if (episodeTime > maxEpisodeSeconds)
         {
             Debug.Log("Episode ended: TIMEOUT");
             AddReward(-0.5f); // ran out of time -- treat as a soft failure
@@ -170,9 +207,11 @@ public class PlatformerAgent : Agent
         sensor.AddObservation(hitTypeValue);
     }
 
-    // Action -- Countinuous branch 0: horizontal move (-1 to 1), Discrete branch 0: (0 = no, 1 = yes)
+    // Action -- Discrete branch 0: horizontal move (0 = none, 1 = left, 2 = right), Discrete branch 1: (0 = no, 1 = yes)
     public override void OnActionReceived(ActionBuffers actions)
     {
+        if (Time.time - episodeStartTime < episodeStartFreezeDuration) return;
+
         int moveDir = actions.DiscreteActions[0];
         float moveInput = moveDir == 0 ? 0f : (moveDir == 1 ? -1f : 1f);
         controller.MoveHorizontal(moveInput);
@@ -312,6 +351,9 @@ public class PlatformerAgent : Agent
 
     public void OnGoalReached()
     {
+        if (goalReachedThisEpisode) return;
+        goalReachedThisEpisode = true;
+
         Debug.Log("OnGoalReached called!");
         AddReward(20f);
         EndEpisode();
