@@ -1,0 +1,29 @@
+{
+    "MLAgent": {
+        "checkpoints": [
+            {
+                "steps": 307553,
+                "file_path": "results\\mlagent_test1.2\\MLAgent\\MLAgent-307553.onnx",
+                "reward": 26.330954184506666,
+                "creation_time": 1790395182.0207615,
+                "auxillary_file_paths": [
+                    "results\\mlagent_test1.2\\MLAgent\\MLAgent-307553.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 307553,
+            "file_path": "results\\mlagent_test1.2\\MLAgent.onnx",
+            "reward": 26.330954184506666,
+            "creation_time": 1790395182.0207615,
+            "auxillary_file_paths": [
+                "results\\mlagent_test1.2\\MLAgent\\MLAgent-307553.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.1.0",
+        "torch_version": "2.2.2+cpu"
+    }
+}

@@ -29,6 +29,23 @@ public class LevelRandomizer : MonoBehaviour
     // Max space between obstacles
     [SerializeField] private float maxObstacleGap = 2.8f;
 
+    [SerializeField] private float minSpikeGap = 4f;
+
+    // Manual test override
+    [SerializeField] private bool overrideSpikeDifficultyForTesting = false;
+    [SerializeField] private float testSpikeDifficulty = 1f;
+
+    // Curriculum -- hazards spikes
+    [SerializeField] private List<Transform> spikeTransforms;
+    private float spikeDifficulty = 0f;
+
+    public float EffectiveSpikeDifficulty => overrideSpikeDifficultyForTesting ? testSpikeDifficulty : spikeDifficulty;
+
+    public void SetSpikeDifficulty(float difficulty)
+    {
+        spikeDifficulty = Mathf.Clamp01(difficulty);
+    }
+
     // Fixed y position, only x is randomised
     public void RandomiseLevel()
     {
@@ -57,6 +74,7 @@ public class LevelRandomizer : MonoBehaviour
         goalPosition.position = goalPos;
 
         PlaceObstaclesBetween(startPos.x, goalPos.x);
+        PlaceSpikes(startPos.x, goalPos.x);
     }
 
     // Divide the space between start and goal into one slot per obstacle, and place each obstacle at random x within its own slot
@@ -99,12 +117,16 @@ public class LevelRandomizer : MonoBehaviour
             int remainingAfter = count - 1 - i;
 
             float distMin = lastPlacedDist + minObstacleGap;
-            float distMax = lastPlacedDist + maxObstacleGap;
 
-            // Ensure have enough space for remaining obstacle later
+            // Leave enough room for whatever obstacles still need to be placed after this one
             float requiredForRest = remainingAfter * minObstacleGap;
-            float maxAllowedBySpan = totalSpan - requiredForRest;
-            distMax = Mathf.Min(distMax, maxAllowedBySpan);
+            float distMax = totalSpan - requiredForRest;
+
+            // maxObstacleGap only cap the hop from previous obstacle to this one
+            if (i > 0)
+            {
+                distMax = Mathf.Min(distMax, lastPlacedDist + maxObstacleGap);
+            }
 
             float dist;
             if (distMin <= distMax)
@@ -129,13 +151,68 @@ public class LevelRandomizer : MonoBehaviour
         }
     }
 
+    private void PlaceSpikes(float startX, float goalX)
+    {
+        if (spikeTransforms == null || spikeTransforms.Count == 0) return;
+
+        int activeCount = Mathf.RoundToInt(EffectiveSpikeDifficulty * spikeTransforms.Count);
+
+        float low = Mathf.Max(Mathf.Min(startX, goalX) + obstacleMargin, mapMinX);
+        float high = Mathf.Min(Mathf.Max(startX, goalX) - obstacleMargin, mapMaxX);
+
+        float lastPlacedX = float.NegativeInfinity;
+        int placedSoFar = 0;
+
+        for (int i = 0; i < spikeTransforms.Count; i++)
+        {
+            Transform spike = spikeTransforms[i];
+            if (spike == null) continue;
+
+            bool active = i < activeCount;
+            spike.gameObject.SetActive(active);
+
+            if (!active || high <= low) continue;
+
+            int remainingAfter = activeCount - 1 - placedSoFar;
+
+            float rangeMin = Mathf.Max(low, lastPlacedX + minSpikeGap);
+            float rangeMax = high - remainingAfter * minSpikeGap;
+
+            float x;
+            if (rangeMin <= rangeMax)
+            {
+                x = Random.Range(rangeMin, rangeMax);
+            }
+            else
+            {
+                x = Mathf.Clamp(rangeMin, low, high);
+            }
+
+            Vector3 pos = spike.position;
+            pos.x = x;
+            spike.position = pos;
+
+            lastPlacedX = x;
+            placedSoFar++;
+        }
+    }
+
     private bool SlotsWideEnough(float startX, float goalX, int obstacleCount)
     {
         float low = Mathf.Max(Mathf.Min(startX, goalX) + obstacleMargin, mapMinX);
         float high = Mathf.Min(Mathf.Max(startX, goalX) - obstacleMargin, mapMaxX);
         if (high <= low) return false;
 
-        float requiredSpan = obstacleCount * minObstacleGap;
+        // If spike level
+        int activeSpikes = (spikeTransforms != null && spikeTransforms.Count > 0)
+            ? Mathf.RoundToInt(spikeDifficulty * spikeTransforms.Count) : 0;
+
+        // If level have spike and box
+        float requiredForObstacles = obstacleCount > 0 && (obstacleTransforms?.Count ?? 0) > 0
+            ? obstacleCount * minObstacleGap : 0f;
+        float requiredForSpikes = activeSpikes * minSpikeGap;
+
+        float requiredSpan = Mathf.Max(requiredForObstacles, requiredForSpikes);
         return (high - low) >= requiredSpan;
     }
 }

@@ -67,6 +67,11 @@ public class PlatformerAgent : Agent
         {
             controller.CancleJump();
         }
+        if (levelRandomizer != null)
+        {
+            float spikeDifficulty = Academy.Instance.EnvironmentParameters.GetWithDefault("spike_difficulty", 0f);
+            levelRandomizer.SetSpikeDifficulty(spikeDifficulty);
+        }
 
         // Randomise goal direction/distacne and obstacle placement before anything below read goalPos
         if (levelRandomizer != null)
@@ -171,6 +176,15 @@ public class PlatformerAgent : Agent
         Vector2 direction = new Vector2(Mathf.Cos(rad) * facing, Mathf.Sin(rad));
 
         RaycastHit2D obstacleHit = Physics2D.Raycast(transform.position, direction, rayLength, obstacleLayer);
+
+        if (obstacleHit.collider != null && logEachStep)
+        {
+            Debug.Log($"[Ray {angleDegrees}бу] hit {obstacleHit.collider.name}, " +
+                        $"dir=({direction.x:F2},{direction.y:F2}), " +
+                        $"layer={LayerMask.LayerToName(obstacleHit.collider.gameObject.layer)}, " +
+                        $"dist={obstacleHit.distance:F2}");
+        }
+
         RaycastHit2D enemyHit = Physics2D.Raycast(transform.position, direction, rayLength, enemyLayer);
         RaycastHit2D goalHit = Physics2D.Raycast(transform.position, direction, rayLength, goalLayer);
 
@@ -308,6 +322,51 @@ public class PlatformerAgent : Agent
         Gizmos.color = Color.blue;
         Vector2 forwardEnd = (Vector2)feetPosition + new Vector2(facing, 0f) * forwardCheckDistance;
         Gizmos.DrawLine(feetPosition, forwardEnd);
+
+        // Raycast visualisation
+        Gizmos.color = Color.green;
+        foreach (float angle in ForwardAngles)
+        {
+            DrawRayGizmo(angle, facing);
+        }
+        Gizmos.color = Color.yellow;
+        foreach (float angle in DownwardAngles)
+        {
+            DrawRayGizmo(angle, facing);
+        }
+        Gizmos.color = Color.cyan;
+        foreach (float angle in UpwardAngles)
+        {
+            DrawRayGizmo(angle, facing);
+        }
+    }
+
+    private void DrawRayGizmo(float angleDegree, float facing)
+    {
+        float rad = angleDegree * Mathf.Deg2Rad;
+        Vector2 direction = new Vector2(Mathf.Cos(rad) * facing, Mathf.Sin(rad));
+        Vector3 start = transform.position;
+
+        // Use Raycast detect
+        RaycastHit2D hit = Physics2D.Raycast(start, direction, rayLength, obstacleLayer);
+
+        if (hit.collider != null)
+        {
+            // If hit
+            Vector3 end = hit.point;
+
+            // If is spike, use red
+            bool isSpike = hit.collider.name.Contains("spike", System.StringComparison.OrdinalIgnoreCase);
+            Gizmos.color = isSpike ? Color.red : Color.magenta;
+            Gizmos.DrawLine(start, end);
+            Gizmos.DrawWireSphere(end, 0.1f);
+        }
+        else
+        {
+            Vector3 end = start + (Vector3)(direction * rayLength);
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(start, end);
+        }
     }
 
     // Lets human test the agent's action space manually (Behavior Type: Heuristic Only)

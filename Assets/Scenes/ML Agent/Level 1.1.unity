@@ -180,6 +180,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b5aa3bd2957ee61478f84dbd4f96da87, type: 3}
+--- !u!114 &46549131 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7333572497929979956, guid: b5aa3bd2957ee61478f84dbd4f96da87, type: 3}
+  m_PrefabInstance: {fileID: 46549130}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b138523277a8f744397fae6b5e106712, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelEndFlag
 --- !u!1001 &252624731
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -345,6 +356,9 @@ MonoBehaviour:
   obstacleMargin: 1
   mapMinX: -10
   mapMaxX: 10
+  minObstacleGap: 2
+  maxSeparationRetries: 10
+  maxObstacleGap: 2.8
 --- !u!4 &642796282
 Transform:
   m_ObjectHideFlags: 0
@@ -513,6 +527,10 @@ PrefabInstance:
       propertyPath: goalPosition
       value: 
       objectReference: {fileID: 418906843}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: levelEndFlag
+      value: 
+      objectReference: {fileID: 46549131}
     - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: startPosition
       value: 

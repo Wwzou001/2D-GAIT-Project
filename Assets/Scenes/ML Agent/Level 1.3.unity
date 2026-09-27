@@ -416,9 +416,9 @@ MonoBehaviour:
   obstacleMargin: 1.5
   mapMinX: -14
   mapMaxX: 14
-  minObstacleGap: 2
+  minObstacleGap: 2.5
   maxSeparationRetries: 10
-  maxObstacleGap: 2.8
+  maxObstacleGap: 2.5
 --- !u!4 &642796282
 Transform:
   m_ObjectHideFlags: 0
