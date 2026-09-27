@@ -28,13 +28,16 @@ public class FlyingEnemy : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         rb.gravityScale = 0f; // no gravity affect to flying enemy
-        startPosition = transform.position;
+        ResetForEpisode();
+    }
 
+    public void ResetForEpisode()
+    {
+        startPosition = transform.position;
         // Roll instance actual values once, differ from other use same prefab
         actualMoveSpeed = moveSpeed * Random.Range(1f - speedVariation, 1f + speedVariation);
         actualWanderRadius = wanderRadius * Random.Range(1f - radiusVariation, 1f + radiusVariation);
         actualPickInterval = pickNewTargetInterval * Random.Range(1f - intervalVariation, 1f + intervalVariation);
-
         PickNewTarget();
     }
 
@@ -86,6 +89,12 @@ public class FlyingEnemy : MonoBehaviour
         if (PlatformerGameManager.Instance != null)
         {
             PlatformerGameManager.Instance.Lose("hit by a flying enemy");
+        }
+
+        PlatformerAgent agent = other.GetComponent<PlatformerAgent>();
+        if (agent != null)
+        {
+            agent.OnEnemyHit();
         }
     }
 

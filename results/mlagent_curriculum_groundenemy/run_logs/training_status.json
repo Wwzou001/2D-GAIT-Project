@@ -1,0 +1,62 @@
+{
+    "spike_difficulty": {
+        "lesson_num": 0
+    },
+    "enemy_difficulty": {
+        "lesson_num": 2
+    },
+    "MLAgent": {
+        "checkpoints": [
+            {
+                "steps": 118164,
+                "file_path": "results\\mlagent_curriculum_groundenemy\\MLAgent\\MLAgent-118164.onnx",
+                "reward": 12.732406060706388,
+                "creation_time": 1790492640.1107576,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_groundenemy\\MLAgent\\MLAgent-118164.pt"
+                ]
+            },
+            {
+                "steps": 499987,
+                "file_path": "results\\mlagent_curriculum_groundenemy\\MLAgent\\MLAgent-499987.onnx",
+                "reward": 20.200465098333854,
+                "creation_time": 1790494457.7845223,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_groundenemy\\MLAgent\\MLAgent-499987.pt"
+                ]
+            },
+            {
+                "steps": 999986,
+                "file_path": "results\\mlagent_curriculum_groundenemy\\MLAgent\\MLAgent-999986.onnx",
+                "reward": 14.688455084959665,
+                "creation_time": 1790496532.006596,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_groundenemy\\MLAgent\\MLAgent-999986.pt"
+                ]
+            },
+            {
+                "steps": 1148057,
+                "file_path": "results\\mlagent_curriculum_groundenemy\\MLAgent\\MLAgent-1148057.onnx",
+                "reward": 15.10760640305056,
+                "creation_time": 1790497152.560448,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_groundenemy\\MLAgent\\MLAgent-1148057.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 1148057,
+            "file_path": "results\\mlagent_curriculum_groundenemy\\MLAgent.onnx",
+            "reward": 15.10760640305056,
+            "creation_time": 1790497152.560448,
+            "auxillary_file_paths": [
+                "results\\mlagent_curriculum_groundenemy\\MLAgent\\MLAgent-1148057.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.1.0",
+        "torch_version": "2.2.2+cpu"
+    }
+}

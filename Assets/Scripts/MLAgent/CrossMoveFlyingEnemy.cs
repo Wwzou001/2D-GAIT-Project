@@ -27,6 +27,11 @@ public class CrossMoveFlyingEnemy : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         rb.gravityScale = 0f; // flying enemies not affected by gravity
+        ResetForEpisode();
+    }
+
+    public void ResetForEpisode()
+    {
         startPosition = transform.position;
         actualSpeed = moveSpeed * Random.Range(1f - speedVariation, 1f + speedVariation);
 

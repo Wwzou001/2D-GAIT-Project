@@ -30,10 +30,22 @@ public class LevelRandomizer : MonoBehaviour
     [SerializeField] private float maxObstacleGap = 2.8f;
 
     [SerializeField] private float minSpikeGap = 4f;
-
+    
     // Manual test override
     [SerializeField] private bool overrideSpikeDifficultyForTesting = false;
     [SerializeField] private float testSpikeDifficulty = 1f;
+
+    // Curriculum -- enemy
+    [SerializeField] private float minEnemyGap = 8f;
+
+    [SerializeField] private bool overrideEnemyDifficultyForTesting = false;
+    [SerializeField] private float testEnemyDifficulty = 1f;
+
+    [SerializeField] private List<Transform> enemyTransforms;
+    private float enemyDifficulty = 0f;
+
+    public float EffectiveEnemyDifficulty => overrideEnemyDifficultyForTesting ? testEnemyDifficulty : enemyDifficulty;
+    public void SetEnemyDifficulty(float difficulty) => enemyDifficulty = Mathf.Clamp01(difficulty);
 
     // Curriculum -- hazards spikes
     [SerializeField] private List<Transform> spikeTransforms;
@@ -41,10 +53,7 @@ public class LevelRandomizer : MonoBehaviour
 
     public float EffectiveSpikeDifficulty => overrideSpikeDifficultyForTesting ? testSpikeDifficulty : spikeDifficulty;
 
-    public void SetSpikeDifficulty(float difficulty)
-    {
-        spikeDifficulty = Mathf.Clamp01(difficulty);
-    }
+    public void SetSpikeDifficulty(float difficulty) => spikeDifficulty = Mathf.Clamp01(difficulty);
 
     // Fixed y position, only x is randomised
     public void RandomiseLevel()
@@ -75,6 +84,7 @@ public class LevelRandomizer : MonoBehaviour
 
         PlaceObstaclesBetween(startPos.x, goalPos.x);
         PlaceSpikes(startPos.x, goalPos.x);
+        PlaceEnemiesBetween(startPos.x, goalPos.x);
     }
 
     // Divide the space between start and goal into one slot per obstacle, and place each obstacle at random x within its own slot
@@ -197,6 +207,46 @@ public class LevelRandomizer : MonoBehaviour
         }
     }
 
+    private void PlaceEnemiesBetween(float startX, float goalX)
+    {
+        if (enemyTransforms == null || enemyTransforms.Count == 0) return;
+
+        int activeCount = Mathf.RoundToInt(EffectiveEnemyDifficulty * enemyTransforms.Count);
+
+        float low = Mathf.Max(Mathf.Min(startX, goalX) + obstacleMargin, mapMinX);
+        float high = Mathf.Min(Mathf.Max(startX, goalX) - obstacleMargin, mapMaxX);
+
+        float lastPlacedX = float.NegativeInfinity;
+        int placedSoFar = 0;
+
+        for (int i = 0; i < enemyTransforms.Count; i++)
+        {
+            Transform enemy = enemyTransforms[i];
+            if (enemy == null) continue;
+
+            bool active = i < activeCount;
+            enemy.gameObject.SetActive(active);
+            if (!active || high <= low) continue;
+
+            int remainingAfter = activeCount - 1 - placedSoFar;
+            float rangeMin = Mathf.Max(low, lastPlacedX + minEnemyGap);
+            float rangeMax = high - remainingAfter * minEnemyGap;
+
+            float x = (rangeMin <= rangeMax) ? Random.Range(rangeMin, rangeMax) : Mathf.Clamp(rangeMin, low, high);
+
+            Vector3 pos = enemy.position;
+            pos.x = x;
+            enemy.position = pos;
+
+            lastPlacedX = x;
+            placedSoFar++;
+
+            enemy.GetComponent<GroundEnemy>()?.ResetForEpisode();
+            enemy.GetComponent<FlyingEnemy>()?.ResetForEpisode();
+            enemy.GetComponent<CrossMoveFlyingEnemy>()?.ResetForEpisode();
+        }
+    }
+
     private bool SlotsWideEnough(float startX, float goalX, int obstacleCount)
     {
         float low = Mathf.Max(Mathf.Min(startX, goalX) + obstacleMargin, mapMinX);
@@ -207,12 +257,17 @@ public class LevelRandomizer : MonoBehaviour
         int activeSpikes = (spikeTransforms != null && spikeTransforms.Count > 0)
             ? Mathf.RoundToInt(spikeDifficulty * spikeTransforms.Count) : 0;
 
-        // If level have spike and box
+        // If enemy level
+        int activeEnemies = (enemyTransforms != null && enemyTransforms.Count > 0)
+            ? Mathf.RoundToInt(enemyDifficulty * enemyTransforms.Count) : 0;
+
+        // If level have spike, box, enemy
         float requiredForObstacles = obstacleCount > 0 && (obstacleTransforms?.Count ?? 0) > 0
             ? obstacleCount * minObstacleGap : 0f;
         float requiredForSpikes = activeSpikes * minSpikeGap;
+        float requiredForEnemies = activeEnemies * minEnemyGap;
 
-        float requiredSpan = Mathf.Max(requiredForObstacles, requiredForSpikes);
+        float requiredSpan = Mathf.Max(requiredForObstacles, Mathf.Max(requiredForSpikes, requiredForEnemies));
         return (high - low) >= requiredSpan;
     }
 }

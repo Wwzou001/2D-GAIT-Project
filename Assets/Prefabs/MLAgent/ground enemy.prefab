@@ -31,8 +31,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 4249628271548593199}
   - {fileID: 7535150428677843589}
@@ -113,7 +113,7 @@ Rigidbody2D:
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_GravityScale: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 96c016f76d095114994103e1cc25cbd4, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -224,7 +224,7 @@ MonoBehaviour:
   obstacleCheck: {fileID: 4249628271548593199}
   obstacleLayer:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 136
   obstacleCheckDistance: 0.3
   enemyTag: Enemy
   turnCooldown: 0.3

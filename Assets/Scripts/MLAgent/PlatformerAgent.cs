@@ -71,6 +71,9 @@ public class PlatformerAgent : Agent
         {
             float spikeDifficulty = Academy.Instance.EnvironmentParameters.GetWithDefault("spike_difficulty", 0f);
             levelRandomizer.SetSpikeDifficulty(spikeDifficulty);
+
+            float enemyDifficulty = Academy.Instance.EnvironmentParameters.GetWithDefault("enemy_difficulty", 0f);
+            levelRandomizer.SetEnemyDifficulty(enemyDifficulty);
         }
 
         // Randomise goal direction/distacne and obstacle placement before anything below read goalPos

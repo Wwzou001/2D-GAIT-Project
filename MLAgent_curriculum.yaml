@@ -35,26 +35,49 @@ behaviors:
 # Curriculum learning for spike difficulty
 environment_parameters:
     spike_difficulty:
-        curriculum:
-            - name: Lesson0_NoSpikes
-              completion_criteria:
-                measure: reward
-                behavior: MLAgent
-                threshold: 25
-                require_reset: true
-                min_lesson_length: 300
-                signal_smoothing: true
-              value: 0.0
+      curriculum:
+        - name: Lesson0_NoSpikes
+          completion_criteria:
+            measure: reward
+            behavior: MLAgent
+            threshold: 25
+            require_reset: true
+            min_lesson_length: 300
+            signal_smoothing: true
+          value: 0.0
 
-            - name: Lesson1_1Spike
-              completion_criteria:
-                measure: reward
-                behavior: MLAgent
-                threshold: 22
-                require_reset: true
-                min_lesson_length: 300
-                signal_smoothing: true
-              value: 0.5
+        - name: Lesson1_1Spike
+          completion_criteria:
+            measure: reward
+            behavior: MLAgent
+            threshold: 22
+            require_reset: true
+            min_lesson_length: 300
+            signal_smoothing: true
+          value: 0.5
 
-            - name: Lesson2_2Spikes
-              value: 1.0
+        - name: Lesson2_2Spikes
+          value: 1.0
+    
+    enemy_difficulty:
+      curriculum:
+        - name: Lesson0_NoEnemy
+          completion_criteria:
+            measure: reward
+            behavior: MLAgent
+            threshold: 22
+            require_reset: true
+            min_lesson_length: 300
+            signal_smoothing: true
+          value: 0.0
+        - name: Lesson1_1Enemy
+          completion_criteria:
+            measure: reward
+            behavior: MLAgent
+            threshold: 22
+            require_reset: true
+            min_lesson_length: 300
+            signal_smoothing: true
+          value: 0.5 
+        - name: Lesson2_2Enemy
+          value: 1.0

@@ -2,9 +2,9 @@ using UnityEngine;
 
 public class GroundEnemy : MonoBehaviour
 {
-    [SerializeField] private float moveSpeed = 2f;
+    [SerializeField] private float moveSpeed = 1.5f;
 
-    [SerializeField] private float patrolDistance = 5f;
+    [SerializeField] private float patrolDistance = 3f;
 
     [SerializeField] private bool useObstacleDetection = true;
     [SerializeField] private Transform obstacleCheck;
@@ -35,11 +35,14 @@ public class GroundEnemy : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        startPosition = transform.position;
+        ResetForEpisode();
+    }
 
+    public void ResetForEpisode()
+    {
+        startPosition = transform.position;
         actualPatrolDistance = patrolDistance * Random.Range(1f - distanceVariation, 1f + distanceVariation);
         actualMoveSpeed = moveSpeed * Random.Range(1f - speedVariation, 1f + speedVariation);
-        
         if (randomiseStartDirection)
         {
             direction = Random.value < 0.5f ? -1 : 1;
@@ -110,6 +113,13 @@ public class GroundEnemy : MonoBehaviour
         if (PlatformerGameManager.Instance != null)
         {
             PlatformerGameManager.Instance.Lose("hit by an enemy");
+        }
+
+        // Notify the ML-Agents wrapper
+        PlatformerAgent agent = other.GetComponent<PlatformerAgent>();
+        if (agent != null)
+        {
+            agent.OnEnemyHit();
         }
     }
 
