@@ -55,6 +55,16 @@ public class LevelRandomizer : MonoBehaviour
 
     public void SetSpikeDifficulty(float difficulty) => spikeDifficulty = Mathf.Clamp01(difficulty);
 
+    private List<float> enemyInitialYs = new List<float>();
+
+    private void Start()
+    {
+        foreach (var enemy in enemyTransforms)
+        {
+            enemyInitialYs.Add(enemy != null ? enemy.position.y : 0f);
+        }
+    }
+
     // Fixed y position, only x is randomised
     public void RandomiseLevel()
     {
@@ -236,6 +246,7 @@ public class LevelRandomizer : MonoBehaviour
 
             Vector3 pos = enemy.position;
             pos.x = x;
+            pos.y = enemyInitialYs[i];
             enemy.position = pos;
 
             lastPlacedX = x;

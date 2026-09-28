@@ -32,6 +32,9 @@ public class CrossMoveFlyingEnemy : MonoBehaviour
 
     public void ResetForEpisode()
     {
+        // Reset initial position
+        rb.linearVelocity = Vector2.zero;
+
         startPosition = transform.position;
         actualSpeed = moveSpeed * Random.Range(1f - speedVariation, 1f + speedVariation);
 
@@ -85,6 +88,11 @@ public class CrossMoveFlyingEnemy : MonoBehaviour
         if (PlatformerGameManager.Instance != null)
         {
             PlatformerGameManager.Instance.Lose("hit by a flying enemy");
+        }
+        PlatformerAgent agent = other.GetComponent<PlatformerAgent>();
+        if (agent != null)
+        {
+            agent.OnEnemyHit();
         }
     }
 

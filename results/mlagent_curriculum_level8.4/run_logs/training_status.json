@@ -1,0 +1,53 @@
+{
+    "spike_difficulty": {
+        "lesson_num": 0
+    },
+    "enemy_difficulty": {
+        "lesson_num": 2
+    },
+    "MLAgent": {
+        "checkpoints": [
+            {
+                "steps": 499999,
+                "file_path": "results\\mlagent_curriculum_level8.4\\MLAgent\\MLAgent-499999.onnx",
+                "reward": 4.856775158206406,
+                "creation_time": 1790595828.2338798,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_level8.4\\MLAgent\\MLAgent-499999.pt"
+                ]
+            },
+            {
+                "steps": 999934,
+                "file_path": "results\\mlagent_curriculum_level8.4\\MLAgent\\MLAgent-999934.onnx",
+                "reward": 14.353879617019134,
+                "creation_time": 1790599041.1356866,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_level8.4\\MLAgent\\MLAgent-999934.pt"
+                ]
+            },
+            {
+                "steps": 1245788,
+                "file_path": "results\\mlagent_curriculum_level8.4\\MLAgent\\MLAgent-1245788.onnx",
+                "reward": 17.89951575199763,
+                "creation_time": 1790600502.0889454,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_level8.4\\MLAgent\\MLAgent-1245788.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 1245788,
+            "file_path": "results\\mlagent_curriculum_level8.4\\MLAgent.onnx",
+            "reward": 17.89951575199763,
+            "creation_time": 1790600502.0889454,
+            "auxillary_file_paths": [
+                "results\\mlagent_curriculum_level8.4\\MLAgent\\MLAgent-1245788.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.1.0",
+        "torch_version": "2.2.2+cpu"
+    }
+}

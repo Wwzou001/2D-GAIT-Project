@@ -12,8 +12,8 @@ GameObject:
   - component: {fileID: 8117596018565785256}
   - component: {fileID: 2758522235383867109}
   - component: {fileID: 1259136433984378608}
-  - component: {fileID: 4080642390053762589}
-  m_Layer: 0
+  - component: {fileID: 2409547628432482528}
+  m_Layer: 6
   m_Name: randowm fly enemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133,13 +133,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 675e8fb2385fc654897f8bb2d0f33f05, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlyingEnemy
-  moveSpeed: 1.5
-  wanderRadius: 2.5
+  moveSpeed: 1
+  wanderRadius: 1.5
   pickNewTargetInterval: 2
   arrivalThreshold: 0.2
+  speedVariation: 0.2
+  radiusVariation: 0.2
+  intervalVariation: 0.3
   minHeightAboveStart: -2
---- !u!70 &4080642390053762589
-CapsuleCollider2D:
+--- !u!60 &2409547628432482528
+PolygonCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -172,6 +175,24 @@ CapsuleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0.03}
-  m_Size: {x: 1, y: 0.4}
-  m_Direction: 1
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 1, y: 0.5833333}
+    newSize: {x: 1, y: 0.5833333}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Points:
+    m_Paths:
+    - - {x: -0.41784424, y: 0.18383718}
+      - {x: -0.2920432, y: 0.04819121}
+      - {x: -0.18640453, y: 0.03695652}
+      - {x: -0.17745101, y: -0.09323552}
+      - {x: 0.1638248, y: -0.09634489}
+      - {x: 0.1749576, y: 0.03952381}
+      - {x: 0.33825588, y: 0.041879}
+      - {x: 0.43068075, y: 0.18383712}
+  m_UseDelaunayMesh: 1

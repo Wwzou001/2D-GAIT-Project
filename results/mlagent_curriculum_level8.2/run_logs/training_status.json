@@ -1,0 +1,44 @@
+{
+    "spike_difficulty": {
+        "lesson_num": 2
+    },
+    "enemy_difficulty": {
+        "lesson_num": 2
+    },
+    "MLAgent": {
+        "checkpoints": [
+            {
+                "steps": 499996,
+                "file_path": "results\\mlagent_curriculum_level8.2\\MLAgent\\MLAgent-499996.onnx",
+                "reward": 25.381725785059807,
+                "creation_time": 1790584568.0057616,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_level8.2\\MLAgent\\MLAgent-499996.pt"
+                ]
+            },
+            {
+                "steps": 916868,
+                "file_path": "results\\mlagent_curriculum_level8.2\\MLAgent\\MLAgent-916868.onnx",
+                "reward": 28.643347352954514,
+                "creation_time": 1790586435.0322566,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_level8.2\\MLAgent\\MLAgent-916868.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 916868,
+            "file_path": "results\\mlagent_curriculum_level8.2\\MLAgent.onnx",
+            "reward": 28.643347352954514,
+            "creation_time": 1790586435.0322566,
+            "auxillary_file_paths": [
+                "results\\mlagent_curriculum_level8.2\\MLAgent\\MLAgent-916868.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.1.0",
+        "torch_version": "2.2.2+cpu"
+    }
+}
