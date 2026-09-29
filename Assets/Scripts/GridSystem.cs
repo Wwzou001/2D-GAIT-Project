@@ -35,6 +35,10 @@ public class GridSystem : MonoBehaviour
 
     public int TotalKeys => keyCount;
 
+    public event Action<Vector2Int> KeySpawned;
+    private int keysCollected = 0;
+    public int KeysCollected => keysCollected;
+
 // for slowing player down
     public int slowCount = 2; 
 
@@ -69,7 +73,12 @@ public class GridSystem : MonoBehaviour
 
                     BoxCollider2D collider = go.AddComponent<BoxCollider2D>();
                     collider.size = new Vector2(0.9f, 0.9f);
-                    go.layer = LayerMask.NameToLayer("Obstacles");  
+
+                    int obstacleLayer = LayerMask.NameToLayer("Obstacles");
+                    if (obstacleLayer != -1)
+                        go.layer = obstacleLayer;
+
+                    spawnedObstacleColliders.Add(go);
                 }
             }
         }
@@ -82,12 +91,13 @@ public class GridSystem : MonoBehaviour
                 grid[x, y] = CellType.Empty;
 
         fountainPositions.Clear();
+        keysCollected = 0;
 
         PlaceRandomly(CellType.Coin, coinCount, isObstacle: false);
         PlaceRandomly(CellType.Obstacle, obstacleCount, isObstacle: true);
         PlaceFountains(fountainCount);
         PlaceRandomly(CellType.Slow, slowCount, isObstacle: false);  // new obstacle
-        PlaceRandomly(CellType.Key, keyCount, isObstacle: false); // key
+        // PlaceRandomly(CellType.Key, keyCount, isObstacle: false); // key
 
         if (spawnColliders)
         {
@@ -212,8 +222,11 @@ public class GridSystem : MonoBehaviour
     public void CollectKey(Vector2Int pos)
     {
         if (IsKey(pos))
+        {
             grid[pos.x, pos.y] = CellType.Empty;
+            keysCollected++;
             KeyCollected?.Invoke(pos);   
+        }
     }
 
     // Check if any fountain within surround 8 cells
@@ -279,5 +292,20 @@ public class GridSystem : MonoBehaviour
     public Vector2Int WorldToGrid(Vector3 worldPos)
     {
         return new Vector2Int(Mathf.RoundToInt(worldPos.x), Mathf.RoundToInt(worldPos.y));
+    }
+    // new method for spawning the key after fairies are collected
+    public void SpawnKeyRandomly(params Vector2Int[] avoidCells)
+    {
+        int safetyLimit = 200;
+        while (safetyLimit-- > 0)
+        {
+            Vector2Int pos = new Vector2Int(UnityEngine.Random.Range(0, width), UnityEngine.Random.Range(0, height));
+
+            if (grid[pos.x, pos.y] != CellType.Empty) continue;
+            if (pos == playerStart || pos == npcStart || Array.IndexOf(avoidCells, pos) >= 0) continue;
+            grid[pos.x, pos.y] = CellType.Key;
+            KeySpawned?.Invoke(pos);
+            return;
+        }
     }
 }

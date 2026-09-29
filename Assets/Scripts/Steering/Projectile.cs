@@ -1,90 +1,104 @@
 using System.Collections;
 using UnityEngine;
-
-// A projectile: moves in a straight line, destroys any fly it touches,
-// and bursts (scales up + fades out) when it hits a wall/obstacle instead of
-// just vanishing instantly.
+ 
+// A flame that flies in a straight line. It is created at runtime by PlayerShooting.
+//
+// Hits a fly:        the fly is collected straight away. It is removed and
+//                    GameManager is told, so the counter goes up.
+// Hits a wall or an obstacle: it bursts (grows and fades) instead of just vanishing.
+// Passes through:    the player and other projectiles.
 public class Projectile : MonoBehaviour
 {
-    public float speed = 10f;
-    public float lifetime = 3f;
-    public float burstDuration = 0.15f;
-
+    public float speed = 5f;
+    public float lifetime = 3f;          // removed automatically if it never hits anything
+    public float burstDuration = 0.15f;  // how long the burst effect lasts
+ 
     private Vector2 direction;
     private SpriteRenderer spriteRenderer;
-    private bool hasBurst = false;
-
+ 
+    // Becomes true after the projectile has hit something, so it can only hit once.
+    private bool isFinished = false;
+ 
     public void SetDirection(Vector2 dir)
     {
         direction = dir.normalized;
     }
-
+ 
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
     }
-
+ 
     private void Start()
     {
-        Destroy(gameObject, lifetime); // clean up automatically if it never hits anything
+        Destroy(gameObject, lifetime);
     }
-
+ 
     private void Update()
     {
-        if (hasBurst)
-            return; // don't keep moving once it's bursting
-
+        if (isFinished)
+            return;
+ 
         transform.position += (Vector3)(direction * speed * Time.deltaTime);
     }
-
+ 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (hasBurst)
+        if (isFinished)
             return;
-
+ 
+        // Things the projectile should fly straight through.
+        if (other.GetComponent<PlayerMovement>() != null) return;
+        if (other.GetComponent<Projectile>() != null) return;
+ 
+        // Hit a fly: it counts as collected right now.
         FlyFSM fly = other.GetComponent<FlyFSM>();
         if (fly != null)
         {
+            isFinished = true;
+ 
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.FlyShot();
+            }
+ 
             Destroy(fly.gameObject);
             Destroy(gameObject);
             return;
         }
-
-        // ignore the player itself, in case of spawn overlap
-        if (other.GetComponent<PlayerMovement>() != null)
-            return;
-
-        // hit something solid that isn't a fly will burst instead of vanishing
+ 
+        // Anything else solid (a wall or an obstacle): burst.
         StartCoroutine(Burst());
     }
-
+ 
+    // Grows the projectile and fades it out, then removes it.
     private IEnumerator Burst()
     {
-        hasBurst = true;
-
+        isFinished = true;
+ 
         Collider2D col = GetComponent<Collider2D>();
         if (col != null)
-            col.enabled = false; // stop registering more hits while bursting
-
+            col.enabled = false;
+ 
         Vector3 startScale = transform.localScale;
         Vector3 endScale = startScale * 2.5f;
         Color startColor = spriteRenderer.color;
-
+ 
         float elapsed = 0f;
         while (elapsed < burstDuration)
         {
             elapsed += Time.deltaTime;
             float t = elapsed / burstDuration;
-
+ 
             transform.localScale = Vector3.Lerp(startScale, endScale, t);
-
-            Color fadedColor = startColor;
-            fadedColor.a = Mathf.Lerp(startColor.a, 0f, t);
-            spriteRenderer.color = fadedColor;
-
+ 
+            Color faded = startColor;
+            faded.a = Mathf.Lerp(startColor.a, 0f, t);
+            spriteRenderer.color = faded;
+ 
             yield return null;
         }
-
+ 
         Destroy(gameObject);
     }
 }

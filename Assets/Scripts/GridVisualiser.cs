@@ -24,7 +24,7 @@ public class GridVisulizer : MonoBehaviour
     [SerializeField] private Color slowColor = Color.white;
     [SerializeField] private int slowSortingOrder = 1;
 
-// key 
+    // key 
     [SerializeField] private Sprite keySprite;
     [SerializeField] private Color keyColor = Color.white;
     [SerializeField] private int keySortingOrder = 1;
@@ -45,6 +45,7 @@ private Dictionary<Vector2Int, GameObject> activeKeySprites = new Dictionary<Vec
 
         GridSystem.Instance.CoinCollected += HandleCoinCollected;
         GridSystem.Instance.KeyCollected += HandleKeyCollected;   
+        GridSystem.Instance.KeySpawned += SpawnKeySprite;
     }
 
     private void OnDestroy()
@@ -53,6 +54,7 @@ private Dictionary<Vector2Int, GameObject> activeKeySprites = new Dictionary<Vec
         {
             GridSystem.Instance.CoinCollected -= HandleCoinCollected;
             GridSystem.Instance.KeyCollected -= HandleKeyCollected;
+            GridSystem.Instance.KeySpawned -= SpawnKeySprite;
         }
     }
  // key spawn and collect

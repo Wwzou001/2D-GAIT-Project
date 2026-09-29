@@ -9,7 +9,10 @@ public class GridMover : MonoBehaviour
     [SerializeField] private Vector2Int startPosition = Vector2Int.zero;
 
     [SerializeField] private bool canCollectCoins = true;
-    [SerializeField] private bool canCollectKeys = true; 
+
+    // The enemy must not pick up the key. GameManager switches this off for the enemy automatically.
+    [SerializeField] private bool canCollectKeys = true;
+    public bool CanCollectKeys { get => canCollectKeys; set => canCollectKeys = value; }
 
 // new obstacle 
     [SerializeField] private float slowCooldownDuration = 1f;
