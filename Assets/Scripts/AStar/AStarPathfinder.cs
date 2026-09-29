@@ -11,7 +11,8 @@ using UnityEngine;
 /// - dynamicBlockedCells supplies temporary/moving obstacles for the current search.
 ///
 /// Teaching parameters:
-/// - HeuristicType selects how H is estimated.
+/// - HeuristicType selects how H is estimated:
+///   Manhattan, Euclidean, or Chebyshev.
 /// - SearchResult.ExploredNodes exposes G/H/F values for visualisation.
 /// </summary>
 public static class AStarPathfinder
@@ -19,7 +20,8 @@ public static class AStarPathfinder
     public enum HeuristicType
     {
         Manhattan,
-        Euclidean
+        Euclidean,
+        Chebyshev
     }
 
     public struct NodeDebugInfo
@@ -65,7 +67,12 @@ public static class AStarPathfinder
     // Compatibility overload: existing code can still call FindPath(start, goal).
     public static List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal)
     {
-        return FindPath(start, goal, HeuristicType.Manhattan, null).Path;
+        return FindPath(
+            start,
+            goal,
+            HeuristicType.Manhattan,
+            null
+        ).Path;
     }
 
     // Compatibility overload used by the earlier teaching/debug controller.
@@ -74,15 +81,22 @@ public static class AStarPathfinder
         Vector2Int goal,
         out int exploredNodes)
     {
-        SearchResult result = FindPath(start, goal, HeuristicType.Manhattan, null);
+        SearchResult result = FindPath(
+            start,
+            goal,
+            HeuristicType.Manhattan,
+            null
+        );
+
         exploredNodes = result.ExploredNodes.Count;
+
         return result.PathFound ? result.Path : null;
     }
 
     /// <summary>
-    /// Runs A* and returns both the path and the explored-node data used for teaching.
-    /// dynamicBlockedCells should contain the CURRENT grid positions of moving obstacles.
-    /// Calling this method again after an obstacle moves gives A* the updated environment.
+    /// Runs A* and returns both the path and explored-node data.
+    /// dynamicBlockedCells contains the CURRENT positions
+    /// of moving obstacles.
     /// </summary>
     public static SearchResult FindPath(
         Vector2Int start,
@@ -101,7 +115,10 @@ public static class AStarPathfinder
         if (!GridSystem.Instance.IsInBounds(start) ||
             !GridSystem.Instance.IsInBounds(goal))
         {
-            Debug.LogWarning($"A*: Start {start} or goal {goal} is outside the grid.");
+            Debug.LogWarning(
+                $"A*: Start {start} or goal {goal} is outside the grid."
+            );
+
             return result;
         }
 
@@ -120,11 +137,19 @@ public static class AStarPathfinder
         List<Node> openList = new List<Node>();
         HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
 
-        openList.Add(new Node(start, null, 0f, CalculateHeuristic(start, goal, heuristic)));
+        openList.Add(
+            new Node(
+                start,
+                null,
+                0f,
+                CalculateHeuristic(start, goal, heuristic)
+            )
+        );
 
         while (openList.Count > 0)
         {
             Node currentNode = GetLowestCostNode(openList);
+
             openList.Remove(currentNode);
 
             if (closedSet.Contains(currentNode.Position))
@@ -132,35 +157,66 @@ public static class AStarPathfinder
 
             closedSet.Add(currentNode.Position);
 
-            // Store the exact G/H/F values at the moment this node is explored.
+            // Save G/H/F information for teaching visualisation.
             result.ExploredNodes.Add(
-                new NodeDebugInfo(currentNode.Position, currentNode.GCost, currentNode.HCost));
+                new NodeDebugInfo(
+                    currentNode.Position,
+                    currentNode.GCost,
+                    currentNode.HCost
+                )
+            );
 
+            // Goal reached.
             if (currentNode.Position == goal)
             {
                 result.Path = ReconstructPath(currentNode);
                 result.PathFound = true;
+
                 return result;
             }
 
-            foreach (Vector2Int neighbour in GetNeighbours(currentNode.Position))
+            foreach (Vector2Int neighbour
+                     in GetNeighbours(currentNode.Position))
             {
                 if (!GridSystem.Instance.IsInBounds(neighbour))
                     continue;
 
-                if (IsBlocked(neighbour, dynamicBlockedCells, start))
+                if (IsBlocked(
+                    neighbour,
+                    dynamicBlockedCells,
+                    start))
                     continue;
 
                 if (closedSet.Contains(neighbour))
                     continue;
 
-                float newGCost = currentNode.GCost + 1f;
-                float newHCost = CalculateHeuristic(neighbour, goal, heuristic);
-                Node existingNode = FindNodeInOpenList(openList, neighbour);
+                // Every grid movement currently costs 1.
+                float newGCost =
+                    currentNode.GCost + 1f;
+
+                float newHCost =
+                    CalculateHeuristic(
+                        neighbour,
+                        goal,
+                        heuristic
+                    );
+
+                Node existingNode =
+                    FindNodeInOpenList(
+                        openList,
+                        neighbour
+                    );
 
                 if (existingNode == null)
                 {
-                    openList.Add(new Node(neighbour, currentNode, newGCost, newHCost));
+                    openList.Add(
+                        new Node(
+                            neighbour,
+                            currentNode,
+                            newGCost,
+                            newHCost
+                        )
+                    );
                 }
                 else if (newGCost < existingNode.GCost)
                 {
@@ -178,16 +234,26 @@ public static class AStarPathfinder
         HashSet<Vector2Int> dynamicBlockedCells,
         Vector2Int start)
     {
-        // The agent's own start cell must remain traversable.
+        // The agent's own starting cell must remain traversable.
         if (position == start)
             return false;
 
+        // Fixed obstacle.
         if (GridSystem.Instance.IsObstacle(position))
             return true;
 
-        return dynamicBlockedCells != null && dynamicBlockedCells.Contains(position);
+        // Moving/dynamic obstacle.
+        return dynamicBlockedCells != null &&
+               dynamicBlockedCells.Contains(position);
     }
 
+    /// <summary>
+    /// Calculates the H cost using the selected heuristic.
+    ///
+    /// Manhattan  = dx + dy
+    /// Euclidean  = sqrt(dx² + dy²)
+    /// Chebyshev  = max(dx, dy)
+    /// </summary>
     private static float CalculateHeuristic(
         Vector2Int a,
         Vector2Int b,
@@ -199,7 +265,12 @@ public static class AStarPathfinder
         switch (heuristic)
         {
             case HeuristicType.Euclidean:
-                return Mathf.Sqrt(dx * dx + dy * dy);
+                return Mathf.Sqrt(
+                    dx * dx + dy * dy
+                );
+
+            case HeuristicType.Chebyshev:
+                return Mathf.Max(dx, dy);
 
             case HeuristicType.Manhattan:
             default:
@@ -207,7 +278,8 @@ public static class AStarPathfinder
         }
     }
 
-    private static Node GetLowestCostNode(List<Node> openList)
+    private static Node GetLowestCostNode(
+        List<Node> openList)
     {
         Node bestNode = openList[0];
 
@@ -216,7 +288,9 @@ public static class AStarPathfinder
             Node candidate = openList[i];
 
             if (candidate.FCost < bestNode.FCost ||
-                (Mathf.Approximately(candidate.FCost, bestNode.FCost) &&
+                (Mathf.Approximately(
+                    candidate.FCost,
+                    bestNode.FCost) &&
                  candidate.HCost < bestNode.HCost))
             {
                 bestNode = candidate;
@@ -226,7 +300,9 @@ public static class AStarPathfinder
         return bestNode;
     }
 
-    private static Node FindNodeInOpenList(List<Node> openList, Vector2Int position)
+    private static Node FindNodeInOpenList(
+        List<Node> openList,
+        Vector2Int position)
     {
         foreach (Node node in openList)
         {
@@ -237,7 +313,8 @@ public static class AStarPathfinder
         return null;
     }
 
-    private static List<Vector2Int> GetNeighbours(Vector2Int position)
+    private static List<Vector2Int> GetNeighbours(
+        Vector2Int position)
     {
         return new List<Vector2Int>
         {
@@ -248,19 +325,24 @@ public static class AStarPathfinder
         };
     }
 
-    private static List<Vector2Int> ReconstructPath(Node goalNode)
+    private static List<Vector2Int> ReconstructPath(
+        Node goalNode)
     {
-        List<Vector2Int> path = new List<Vector2Int>();
+        List<Vector2Int> path =
+            new List<Vector2Int>();
+
         Node currentNode = goalNode;
 
-        // Excludes the start cell and includes the goal cell.
-        while (currentNode != null && currentNode.Parent != null)
+        // Exclude the start cell and include the goal.
+        while (currentNode != null &&
+               currentNode.Parent != null)
         {
             path.Add(currentNode.Position);
             currentNode = currentNode.Parent;
         }
 
         path.Reverse();
+
         return path;
     }
 }

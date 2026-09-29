@@ -1157,10 +1157,6 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5001109238573987456, guid: a7f54f908870fcf42aef867232ff725c, type: 3}
-      propertyPath: stage
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 5001109238573987456, guid: a7f54f908870fcf42aef867232ff725c, type: 3}
       propertyPath: player
       value: 
       objectReference: {fileID: 1561357133}
@@ -1168,22 +1164,6 @@ PrefabInstance:
       propertyPath: stateText
       value: 
       objectReference: {fileID: 472289764}
-    - target: {fileID: 5001109238573987456, guid: a7f54f908870fcf42aef867232ff725c, type: 3}
-      propertyPath: startingEnergy
-      value: 100
-      objectReference: {fileID: 0}
-    - target: {fileID: 5001109238573987456, guid: a7f54f908870fcf42aef867232ff725c, type: 3}
-      propertyPath: lowEnergyThreshold
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 5001109238573987456, guid: a7f54f908870fcf42aef867232ff725c, type: 3}
-      propertyPath: snoozeRecoveryPerSecond
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 5001109238573987456, guid: a7f54f908870fcf42aef867232ff725c, type: 3}
-      propertyPath: activeEnergyDrainPerSecond
-      value: 3
-      objectReference: {fileID: 0}
     - target: {fileID: 5796295691309614351, guid: a7f54f908870fcf42aef867232ff725c, type: 3}
       propertyPath: m_Sprite
       value: 

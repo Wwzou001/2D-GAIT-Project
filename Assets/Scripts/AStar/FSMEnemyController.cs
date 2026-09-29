@@ -2,30 +2,19 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
-/// <summary>
-/// FSM reference implementation using three clear states: Patrol, Chase and Search.
-///
-/// Sprint 3 simplification:
-/// A single targetPosition variable represents where the enemy currently wants to go.
-/// Events/state transitions update that target instead of creating extra movement states.
-///
-/// Parameters:
-/// - detectDistance: distance at which Patrol/Search detects the player.
-/// - loseDistance: larger distance at which Chase loses the player.
-/// - moveInterval: time between enemy grid moves.
-/// - patrolPointA/B: endpoints of the normal patrol route.
-/// - heuristic: A* heuristic used by the FSM's movement.
-/// - movingObstacles: temporary blocked cells that A* must route around.
-/// </summary>
 [RequireComponent(typeof(GridMover))]
 public class FSMEnemyController : MonoBehaviour
 {
-    public enum EnemyState
+    public enum FSMStage { Stage1_Basic = 1, Stage2_Search = 2, Stage3_Snooze = 3 }
+    public enum EnemyState { PatrolAway, PatrolHome, Chase, Attack, GoHome, Search, Snooze }
+    public enum EnemyEvent
     {
-        Patrol,
-        Chase,
-        Search
+        ReachedTarget, PlayerDetected, PlayerLost, PlayerInAttackRange,
+        AttackSuccess, SearchTimerOff, LowEnergy, HighEnergy
     }
+
+    [Header("Teaching Stage")]
+    [SerializeField] private FSMStage stage = FSMStage.Stage3_Snooze;
 
     [Header("References")]
     [SerializeField] private GridMover player;
@@ -33,11 +22,23 @@ public class FSMEnemyController : MonoBehaviour
     [Header("FSM Parameters")]
     [SerializeField] private int detectDistance = 3;
     [SerializeField] private int loseDistance = 5;
+    [SerializeField] private int attackDistance = 1;
     [SerializeField] private float moveInterval = 0.5f;
 
     [Header("Patrol Environment")]
-    [SerializeField] private Vector2Int patrolPointA = new Vector2Int(4, 4);
-    [SerializeField] private Vector2Int patrolPointB = new Vector2Int(0, 4);
+    [SerializeField] private Vector2Int patrolHome = new Vector2Int(0, 4);
+    [SerializeField] private Vector2Int patrolAway = new Vector2Int(4, 4);
+
+    [Header("Stage 2 - Search")]
+    [SerializeField] private float searchDuration = 6f;
+    [SerializeField] private float searchPointPause = 0.5f;
+
+    [Header("Stage 3 - Energy / Snooze")]
+    [SerializeField] private float startingEnergy = 100f;
+    [SerializeField] private float lowEnergyThreshold = 20f;
+    [SerializeField] private float highEnergyThreshold = 80f;
+    [SerializeField] private float activeEnergyDrainPerSecond = 3f;
+    [SerializeField] private float snoozeRecoveryPerSecond = 30f;
 
     [Header("A* Movement")]
     [SerializeField] private AStarPathfinder.HeuristicType heuristic =
@@ -49,33 +50,43 @@ public class FSMEnemyController : MonoBehaviour
     [SerializeField] private TMP_Text stateText;
 
     private GridMover mover;
-    private EnemyState currentState = EnemyState.Patrol;
-    private EnemyState previousState = EnemyState.Patrol;
-
-    // Core Sprint 3 simplification: states update this one destination variable.
+    private EnemyState currentState = EnemyState.PatrolAway;
+    private EnemyState previousState = EnemyState.PatrolAway;
     private Vector2Int targetPosition;
     private Vector2Int lastKnownPlayerPosition;
-    private float moveTimer;
+    private float moveTimer, searchTimer, searchPointTimer, energy;
+    private readonly List<Vector2Int> searchPoints = new List<Vector2Int>();
+    private int currentSearchPointIndex;
 
     public EnemyState CurrentState => currentState;
     public Vector2Int CurrentTarget => targetPosition;
+    public float CurrentEnergy => energy;
 
     private void Awake()
     {
         mover = GetComponent<GridMover>();
-        targetPosition = patrolPointA;
+        energy = startingEnergy;
+        targetPosition = patrolAway;
         UpdateStateDisplay();
     }
 
     private void Update()
     {
-        if (GameManager.Instance != null && GameManager.Instance.GameOver)
-            return;
+        if (GameManager.Instance != null && GameManager.Instance.GameOver) return;
+        if (player == null) return;
 
-        if (player == null)
-            return;
+        UpdateEnergy();
 
-        UpdateStateFromEvents();
+        // Stage 3 metastate: LowEnergy can interrupt any active state.
+        if (stage >= FSMStage.Stage3_Snooze)
+        {
+            if (currentState != EnemyState.Snooze && energy <= lowEnergyThreshold)
+                HandleEvent(EnemyEvent.LowEnergy);
+            if (currentState == EnemyState.Snooze && energy >= highEnergyThreshold)
+                HandleEvent(EnemyEvent.HighEnergy);
+        }
+
+        if (currentState != EnemyState.Snooze) CheckStateEvents();
 
         moveTimer += Time.deltaTime;
         if (moveTimer >= moveInterval)
@@ -87,47 +98,114 @@ public class FSMEnemyController : MonoBehaviour
         UpdateStateDisplay();
     }
 
-    /// <summary>
-    /// State changes are event-like decisions. Each important event updates targetPosition:
-    /// player detected -> player cell; player lost -> last known cell; patrol point reached -> other patrol point.
-    /// </summary>
-    private void UpdateStateFromEvents()
+    private void CheckStateEvents()
     {
-        int distanceToPlayer = ManhattanDistance(mover.GridPosition, player.GridPosition);
+        int d = ManhattanDistance(mover.GridPosition, player.GridPosition);
 
         switch (currentState)
         {
-            case EnemyState.Patrol:
-                if (distanceToPlayer <= detectDistance)
-                {
-                    lastKnownPlayerPosition = player.GridPosition;
-                    targetPosition = player.GridPosition;
-                    ChangeState(EnemyState.Chase, "player detected");
-                }
+            case EnemyState.PatrolAway:
+            case EnemyState.PatrolHome:
+                if (d <= detectDistance) HandleEvent(EnemyEvent.PlayerDetected);
                 break;
 
             case EnemyState.Chase:
-                if (distanceToPlayer <= loseDistance)
-                {
-                    // Player is still known, so the target follows the player's current cell.
-                    lastKnownPlayerPosition = player.GridPosition;
-                    targetPosition = player.GridPosition;
-                }
+                if (d <= attackDistance) HandleEvent(EnemyEvent.PlayerInAttackRange);
+                else if (d > loseDistance) HandleEvent(EnemyEvent.PlayerLost);
                 else
                 {
-                    // Player-lost event: Search has ONE target, the last known position.
-                    targetPosition = lastKnownPlayerPosition;
-                    ChangeState(EnemyState.Search, "player lost");
+                    lastKnownPlayerPosition = player.GridPosition;
+                    targetPosition = player.GridPosition;
                 }
                 break;
 
             case EnemyState.Search:
-                if (distanceToPlayer <= detectDistance)
+            case EnemyState.GoHome:
+                if (d <= detectDistance) HandleEvent(EnemyEvent.PlayerDetected);
+                break;
+        }
+    }
+
+    private void HandleEvent(EnemyEvent e)
+    {
+        // Stage 3 Snooze behaves like a metastate interrupt.
+        if (stage >= FSMStage.Stage3_Snooze)
+        {
+            if (e == EnemyEvent.LowEnergy && currentState != EnemyState.Snooze)
+            {
+                ChangeState(EnemyState.Snooze, "LowEnergy");
+                return;
+            }
+            if (e == EnemyEvent.HighEnergy && currentState == EnemyState.Snooze)
+            {
+                targetPosition = patrolHome;
+                ChangeState(EnemyState.PatrolHome, "HighEnergy");
+                return;
+            }
+        }
+
+        switch (currentState)
+        {
+            case EnemyState.PatrolAway:
+                if (e == EnemyEvent.ReachedTarget)
                 {
-                    lastKnownPlayerPosition = player.GridPosition;
-                    targetPosition = player.GridPosition;
-                    ChangeState(EnemyState.Chase, "player found again");
+                    targetPosition = patrolHome;
+                    ChangeState(EnemyState.PatrolHome, "ReachedTarget");
                 }
+                else if (e == EnemyEvent.PlayerDetected) BeginChase();
+                break;
+
+            case EnemyState.PatrolHome:
+                if (e == EnemyEvent.ReachedTarget)
+                {
+                    targetPosition = patrolAway;
+                    ChangeState(EnemyState.PatrolAway, "ReachedTarget");
+                }
+                else if (e == EnemyEvent.PlayerDetected) BeginChase();
+                break;
+
+            case EnemyState.Chase:
+                if (e == EnemyEvent.PlayerInAttackRange)
+                    ChangeState(EnemyState.Attack, "PlayerInAttackRange");
+                else if (e == EnemyEvent.PlayerLost)
+                {
+                    if (stage >= FSMStage.Stage2_Search)
+                    {
+                        BeginSearch();
+                        ChangeState(EnemyState.Search, "PlayerLost");
+                    }
+                    else
+                    {
+                        targetPosition = patrolHome;
+                        ChangeState(EnemyState.GoHome, "PlayerLost");
+                    }
+                }
+                break;
+
+            case EnemyState.Attack:
+                if (e == EnemyEvent.AttackSuccess)
+                {
+                    targetPosition = patrolHome;
+                    ChangeState(EnemyState.GoHome, "AttackSuccess");
+                }
+                break;
+
+            case EnemyState.Search:
+                if (e == EnemyEvent.PlayerDetected) BeginChase();
+                else if (e == EnemyEvent.SearchTimerOff)
+                {
+                    targetPosition = patrolHome;
+                    ChangeState(EnemyState.GoHome, "SearchTimerOff");
+                }
+                break;
+
+            case EnemyState.GoHome:
+                if (e == EnemyEvent.ReachedTarget)
+                {
+                    targetPosition = patrolAway;
+                    ChangeState(EnemyState.PatrolAway, "ReachedTarget");
+                }
+                else if (e == EnemyEvent.PlayerDetected) BeginChase();
                 break;
         }
     }
@@ -136,164 +214,225 @@ public class FSMEnemyController : MonoBehaviour
     {
         switch (currentState)
         {
-            case EnemyState.Patrol:
-                Patrol();
-                break;
-
-            case EnemyState.Chase:
-                Chase();
-                break;
-
-            case EnemyState.Search:
-                Search();
-                break;
+            case EnemyState.PatrolAway:
+            case EnemyState.PatrolHome: ExecutePatrol(); break;
+            case EnemyState.Chase: ExecuteChase(); break;
+            case EnemyState.Attack: ExecuteAttack(); break;
+            case EnemyState.GoHome: ExecuteGoHome(); break;
+            case EnemyState.Search: ExecuteSearch(); break;
+            case EnemyState.Snooze: break; // no movement while sleeping
         }
     }
 
-    private void Patrol()
+    private void ExecutePatrol()
     {
         if (mover.GridPosition == targetPosition)
         {
-            // Patrol-point event: update the same target variable to the other endpoint.
-            targetPosition = targetPosition == patrolPointA ? patrolPointB : patrolPointA;
-            Log($"FSM PATROL: target updated to {targetPosition}");
+            HandleEvent(EnemyEvent.ReachedTarget);
+            return;
+        }
+        MoveUsingAStar(targetPosition);
+    }
+
+    private void BeginChase()
+    {
+        lastKnownPlayerPosition = player.GridPosition;
+        targetPosition = player.GridPosition;
+        ChangeState(EnemyState.Chase, "PlayerDetected");
+    }
+
+    private void ExecuteChase()
+    {
+        lastKnownPlayerPosition = player.GridPosition;
+        targetPosition = player.GridPosition;
+        MoveUsingAStar(targetPosition);
+    }
+
+    private void ExecuteAttack()
+    {
+            // Move onto the player's cell to perform the attack.
+        if (mover.GridPosition != player.GridPosition)
+        {
+            targetPosition = player.GridPosition;
+            MoveUsingAStar(targetPosition);
+            return;
         }
 
+        // Once the enemy reaches the player, the existing
+        // GameManager collision rule handles the player's death.
+        Log("FSM ATTACK: 1 damage action.");
+
+        HandleEvent(EnemyEvent.AttackSuccess);
+    }
+
+    private void ExecuteGoHome()
+    {
+        targetPosition = patrolHome;
+        if (mover.GridPosition == patrolHome)
+        {
+            HandleEvent(EnemyEvent.ReachedTarget);
+            return;
+        }
         MoveUsingAStar(targetPosition);
     }
 
-    private void Chase()
+    private void BeginSearch()
     {
-        // UpdateStateFromEvents keeps targetPosition synced with the visible player.
-        MoveUsingAStar(targetPosition);
+        searchTimer = searchPointTimer = 0f;
+        currentSearchPointIndex = 0;
+        searchPoints.Clear();
+
+        AddSearchPointIfValid(lastKnownPlayerPosition);
+        AddSearchPointIfValid(lastKnownPlayerPosition + Vector2Int.up);
+        AddSearchPointIfValid(lastKnownPlayerPosition + Vector2Int.right);
+        AddSearchPointIfValid(lastKnownPlayerPosition + Vector2Int.down);
+        AddSearchPointIfValid(lastKnownPlayerPosition + Vector2Int.left);
+        AddSearchPointIfValid(lastKnownPlayerPosition + new Vector2Int(1, 1));
+        AddSearchPointIfValid(lastKnownPlayerPosition + new Vector2Int(1, -1));
+        AddSearchPointIfValid(lastKnownPlayerPosition + new Vector2Int(-1, -1));
+        AddSearchPointIfValid(lastKnownPlayerPosition + new Vector2Int(-1, 1));
+
+        targetPosition = searchPoints.Count > 0 ? searchPoints[0] : lastKnownPlayerPosition;
     }
 
-    private void Search()
+    private void ExecuteSearch()
     {
-        // Search is intentionally simple per client feedback:
-        // travel to the last-known player position stored in targetPosition.
+        searchTimer += moveInterval;
+
+        if (searchTimer >= searchDuration || searchPoints.Count == 0)
+        {
+            HandleEvent(EnemyEvent.SearchTimerOff);
+            return;
+        }
+
+        targetPosition = searchPoints[currentSearchPointIndex];
         if (mover.GridPosition != targetPosition)
         {
             MoveUsingAStar(targetPosition);
             return;
         }
 
-        // Search-target reached and player was not rediscovered.
-        // No ReturnToPatrol state is needed: update the target and resume Patrol.
-        targetPosition = GetNearestPatrolPoint();
-        ChangeState(EnemyState.Patrol, "last-known position checked");
+        searchPointTimer += moveInterval;
+        if (searchPointTimer < searchPointPause) return;
+
+        searchPointTimer = 0f;
+        currentSearchPointIndex++;
+
+        if (currentSearchPointIndex >= searchPoints.Count)
+        {
+            HandleEvent(EnemyEvent.SearchTimerOff);
+            return;
+        }
+
+        targetPosition = searchPoints[currentSearchPointIndex];
     }
 
-    private Vector2Int GetNearestPatrolPoint()
+    private void UpdateEnergy()
     {
-        int distanceA = ManhattanDistance(mover.GridPosition, patrolPointA);
-        int distanceB = ManhattanDistance(mover.GridPosition, patrolPointB);
-        return distanceA <= distanceB ? patrolPointA : patrolPointB;
+        if (stage < FSMStage.Stage3_Snooze) return;
+
+        if (currentState == EnemyState.Snooze)
+            energy = Mathf.Min(startingEnergy, energy + snoozeRecoveryPerSecond * Time.deltaTime);
+        else
+            energy = Mathf.Max(0f, energy - activeEnergyDrainPerSecond * Time.deltaTime);
+    }
+
+    private void AddSearchPointIfValid(Vector2Int p)
+    {
+        if (GridSystem.Instance == null) return;
+        if (!GridSystem.Instance.IsInBounds(p)) return;
+        if (GridSystem.Instance.IsObstacle(p)) return;
+        if (!searchPoints.Contains(p)) searchPoints.Add(p);
     }
 
     private bool MoveUsingAStar(Vector2Int target)
     {
-        if (mover.GridPosition == target)
-            return true;
+        if (mover.GridPosition == target) return true;
 
         HashSet<Vector2Int> blocked = GetMovingObstacleCells();
-        AStarPathfinder.SearchResult result = AStarPathfinder.FindPath(
-            mover.GridPosition,
-            target,
-            heuristic,
-            blocked);
+        AStarPathfinder.SearchResult result =
+            AStarPathfinder.FindPath(mover.GridPosition, target, heuristic, blocked);
 
-        if (!result.PathFound || result.Path.Count == 0)
-        {
-            Log($"FSM: no current path to {target}");
-            return false;
-        }
+        if (!result.PathFound || result.Path.Count == 0) return false;
 
-        Vector2Int nextPosition = result.Path[0];
+        Vector2Int next = result.Path[0];
+        if (GetMovingObstacleCells().Contains(next)) return false;
 
-        // A moving obstacle may have changed cell since the search began.
-        blocked = GetMovingObstacleCells();
-        if (blocked.Contains(nextPosition))
-            return false;
-
-        Vector2Int difference = nextPosition - mover.GridPosition;
-        Direction direction;
-
-        if (difference.x > 0) direction = Direction.Right;
-        else if (difference.x < 0) direction = Direction.Left;
-        else if (difference.y > 0) direction = Direction.Up;
-        else if (difference.y < 0) direction = Direction.Down;
+        Vector2Int diff = next - mover.GridPosition;
+        Direction dir;
+        if (diff.x > 0) dir = Direction.Right;
+        else if (diff.x < 0) dir = Direction.Left;
+        else if (diff.y > 0) dir = Direction.Up;
+        else if (diff.y < 0) dir = Direction.Down;
         else return false;
 
-        return mover.TryMove(direction);
+        return mover.TryMove(dir);
     }
 
     private HashSet<Vector2Int> GetMovingObstacleCells()
     {
         HashSet<Vector2Int> blocked = new HashSet<Vector2Int>();
-
         foreach (GridMover obstacle in movingObstacles)
-        {
-            if (obstacle == null || obstacle == mover || obstacle == player)
-                continue;
-
-            blocked.Add(obstacle.GridPosition);
-        }
-
+            if (obstacle != null && obstacle != mover && obstacle != player)
+                blocked.Add(obstacle.GridPosition);
         return blocked;
     }
 
-    private void ChangeState(EnemyState newState, string reason)
+    private void ChangeState(EnemyState next, string reason)
     {
-        if (newState == currentState)
-            return;
-
+        if (next == currentState) return;
         previousState = currentState;
-        currentState = newState;
-        Log($"FSM: {previousState} -> {currentState} ({reason}) | Target = {targetPosition}");
+        currentState = next;
+        Log($"FSM: {previousState} -> {currentState} ({reason})");
         UpdateStateDisplay();
     }
 
     private int ManhattanDistance(Vector2Int a, Vector2Int b)
-    {
-        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
-    }
+        => Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
 
     private void UpdateStateDisplay()
     {
-        if (stateText == null)
-            return;
+        if (stateText == null) return;
 
-        int playerDistance = player != null
+        int d = player != null
             ? ManhattanDistance(mover.GridPosition, player.GridPosition)
             : 0;
 
+        string extra = "";
+
+        if (currentState == EnemyState.Search)
+        {
+            extra += $"\nSearch Time: {searchTimer:0.0}/{searchDuration:0.0}s";
+            extra += $"\nSearch Point: {Mathf.Min(currentSearchPointIndex + 1, searchPoints.Count)}/{searchPoints.Count}";
+        }
+
+        if (stage >= FSMStage.Stage3_Snooze)
+        {
+            extra += $"\nEnergy: {energy:0}";
+        }
+
         stateText.text =
+            $"Stage: {(int)stage}\n" +
             $"Previous State: {previousState}\n" +
             $"Current State: {currentState}\n" +
             $"Target: {targetPosition}\n" +
-            $"Player Distance: {playerDistance}";
+            $"Player Distance: {d}" +
+            extra;
     }
 
     private void Log(string message)
     {
-        if (showDebugLogs)
-            Debug.Log(message);
+        if (showDebugLogs) Debug.Log(message);
     }
 
     private void OnDrawGizmosSelected()
     {
-        if (GridSystem.Instance == null)
-            return;
+        if (GridSystem.Instance == null) return;
+        Gizmos.DrawWireSphere(GridSystem.Instance.GridToWorld(patrolHome), 0.2f);
+        Gizmos.DrawWireSphere(GridSystem.Instance.GridToWorld(patrolAway), 0.2f);
 
-        Gizmos.DrawWireSphere(GridSystem.Instance.GridToWorld(patrolPointA), 0.2f);
-        Gizmos.DrawWireSphere(GridSystem.Instance.GridToWorld(patrolPointB), 0.2f);
-
-        if (Application.isPlaying)
-        {
-            Gizmos.DrawWireCube(
-                GridSystem.Instance.GridToWorld(targetPosition),
-                Vector3.one * 0.35f);
-        }
+        if (Application.isPlaying && currentState == EnemyState.Search)
+            foreach (Vector2Int p in searchPoints)
+                Gizmos.DrawWireSphere(GridSystem.Instance.GridToWorld(p), 0.12f);
     }
 }
