@@ -850,7 +850,7 @@ PrefabInstance:
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: -9191263657056127176, guid: dcb2fd2166649e84f906b0c24397b4ba, type: 3}
+      objectReference: {fileID: -8393169711176511969, guid: 62d3b4f6bfd165e47a0c2e9b930f78bc, type: 3}
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_SortingOrder
       value: 5
@@ -1296,7 +1296,7 @@ PrefabInstance:
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 5119971492981962814, guid: 03d0b7e954798477895a1ddb4c58f2ab, type: 3}
+      objectReference: {fileID: -8393169711176511969, guid: 62d3b4f6bfd165e47a0c2e9b930f78bc, type: 3}
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_SortingOrder
       value: 5
@@ -2369,7 +2369,7 @@ PrefabInstance:
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 6091706668691328248, guid: 3877f30d0bb87428ca2ffef0b384e371, type: 3}
+      objectReference: {fileID: -8393169711176511969, guid: 62d3b4f6bfd165e47a0c2e9b930f78bc, type: 3}
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_SortingOrder
       value: 5
@@ -2538,9 +2538,6 @@ MonoBehaviour:
   doorGridPosition: {x: 8, y: 9}
   endGamePanel: {fileID: 1887348294}
   resultText: {fileID: 1953112427}
-  coinCounter: {fileID: 0}
-  keyCounter: {fileID: 0}
-  fliesShotCounter: {fileID: 0}
 --- !u!4 &1174288609
 Transform:
   m_ObjectHideFlags: 0
@@ -2664,7 +2661,7 @@ PrefabInstance:
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: -1504733587676658999, guid: 2f08d25f475f7db408c8cc456506fdd2, type: 3}
+      objectReference: {fileID: -8393169711176511969, guid: 62d3b4f6bfd165e47a0c2e9b930f78bc, type: 3}
     - target: {fileID: 8596850247551385540, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_SortingOrder
       value: 5
