@@ -521,6 +521,71 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!1001 &318211298
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2474645124228044006, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: m_Name
+      value: Enemy
+      objectReference: {fileID: 0}
+    - target: {fileID: 5388349050961756446, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.48
+      objectReference: {fileID: 0}
+    - target: {fileID: 5388349050961756446, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.47
+      objectReference: {fileID: 0}
+    - target: {fileID: 5388349050961756446, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5388349050961756446, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5388349050961756446, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5388349050961756446, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5388349050961756446, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5388349050961756446, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5388349050961756446, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5388349050961756446, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6263961975557600183, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 6263961975557600183, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: stateText
+      value: 
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
 --- !u!1 &472289762
 GameObject:
   m_ObjectHideFlags: 0
@@ -9691,10 +9756,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   player: {fileID: 1561357133}
   enemy: {fileID: 518845081}
+  doorGridPosition: {x: 8, y: 9}
   endGamePanel: {fileID: 1887348294}
   resultText: {fileID: 1953112427}
-  coinCounterText: {fileID: 1975560832}
-  doorGridPosition: {x: 8, y: 9}
 --- !u!4 &1174288609
 Transform:
   m_ObjectHideFlags: 0
@@ -10163,7 +10227,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: -3329728343462389075, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
   m_PrefabInstance: {fileID: 1776726554}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1547474156}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c94a24378ae6d5f4480decc461f3ed9a, type: 3}
@@ -10181,12 +10245,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cde641b6246b04c4daaf3d6575b27f4a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerShooting
+  fireCooldown: 0.3
   projectileSprite: {fileID: 2491587035593152947, guid: 7d8f00a7792e96c4ba3b76bcc3ef7a1c, type: 3}
   projectileColor: {r: 1, g: 1, b: 1, a: 1}
   projectileSpeed: 4
   projectileLifetime: 3
   projectileColliderRadius: 0.15
-  fireCooldown: 0.3
 --- !u!4 &1561357140 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2984261559882196500, guid: b0526a8e91a2c9049bffff7f153d045b, type: 3}
@@ -10942,3 +11006,4 @@ SceneRoots:
   - {fileID: 1135389349}
   - {fileID: 1336698165}
   - {fileID: 1055335028}
+  - {fileID: 318211298}
