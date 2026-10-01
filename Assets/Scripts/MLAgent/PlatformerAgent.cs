@@ -20,6 +20,7 @@ public class PlatformerAgent : Agent
     [SerializeField] private LayerMask obstacleLayer; // hazards, boxes, ground
     [SerializeField] private LayerMask enemyLayer;
     [SerializeField] private LayerMask goalLayer;
+    [SerializeField] private LayerMask coinLayer;
 
     [SerializeField] private float groundCheckDistance = 0.3f;
     [SerializeField] private float forwardCheckDistance = 0.6f;
@@ -43,6 +44,8 @@ public class PlatformerAgent : Agent
     private float closestDistanceToGoal; // shortest distance to goal achieved so far this episode
     private int stepsSinceProgress; // steps since the last new best distance was reached
 
+    private float closestDistanceToCoin;
+
     [SerializeField] private float maxEpisodeSeconds = 20f; // safety cap per episode
 
     private bool goalReachedThisEpisode = false;
@@ -50,6 +53,7 @@ public class PlatformerAgent : Agent
     private float episodeStartTime;
     [SerializeField] private float episodeStartFreezeDuration = 0.1f;
 
+    private const float LARGE_DISTANCE = 1000f;
 
     public override void Initialize()
     {
@@ -74,6 +78,12 @@ public class PlatformerAgent : Agent
 
             float enemyDifficulty = Academy.Instance.EnvironmentParameters.GetWithDefault("enemy_difficulty", 0f);
             levelRandomizer.SetEnemyDifficulty(enemyDifficulty);
+
+            float coinDifficulty = Academy.Instance.EnvironmentParameters.GetWithDefault("coin_difficulty", 1f);
+            levelRandomizer.SetCoinDifficulty(coinDifficulty);
+
+            float pitDifficulty = Academy.Instance.EnvironmentParameters.GetWithDefault("pit_difficulty", 1f);
+            levelRandomizer.SetPitDifficulty(pitDifficulty);
         }
 
         // Randomise goal direction/distacne and obstacle placement before anything below read goalPos
@@ -114,7 +124,12 @@ public class PlatformerAgent : Agent
         closestDistanceToGoal = goalPosition != null 
             ? Mathf.Abs(goalPosition.position.x - transform.position.x) 
             + Mathf.Abs(goalPosition.position.y - transform.position.y) * 0.1f
-            : float.MaxValue;
+            : LARGE_DISTANCE;
+
+        // Initialise nearest coin distance
+        Coin nearestCoin = FindNearestActiveCoin();
+        closestDistanceToCoin = nearestCoin != null ? Vector2.Distance(transform.position, nearestCoin.transform.position) : LARGE_DISTANCE;
+
         stepsSinceProgress = 0;
 
         episodeStartTime = Time.time;
@@ -190,21 +205,32 @@ public class PlatformerAgent : Agent
 
         RaycastHit2D enemyHit = Physics2D.Raycast(transform.position, direction, rayLength, enemyLayer);
         RaycastHit2D goalHit = Physics2D.Raycast(transform.position, direction, rayLength, goalLayer);
+        RaycastHit2D coinHit = Physics2D.Raycast(transform.position, direction, rayLength, coinLayer);
 
         RaycastHit2D closestHit = default;
         float hitTypeValue = 0f; // nothing hit
 
         bool goalCloser = goalHit.collider != null &&
             (obstacleHit.collider == null || goalHit.distance <= obstacleHit.distance) &&
-            (enemyHit.collider == null || goalHit.distance <= enemyHit.distance);
+            (enemyHit.collider == null || goalHit.distance <= enemyHit.distance) &&
+            (coinHit.collider == null || goalHit.distance <= coinHit.distance);
 
-        bool obstacleCloser = !goalCloser && obstacleHit.collider != null && 
+        bool coinCloser = !goalCloser && coinHit.collider != null &&
+            (obstacleHit.collider == null || coinHit.distance <= obstacleHit.distance) &&
+            (enemyHit.collider == null || coinHit.distance <= enemyHit.distance);
+
+        bool obstacleCloser = !goalCloser && !coinCloser && obstacleHit.collider != null && 
             (enemyHit.collider == null || obstacleHit.distance <= enemyHit.distance);
 
         if (goalCloser)
         {
             closestHit = goalHit;
             hitTypeValue = -1f;
+        }
+        else if (coinCloser)
+        {
+            closestHit = coinHit;
+            hitTypeValue = -0.5f;
         }
         else if (obstacleCloser)
         {
@@ -268,8 +294,22 @@ public class PlatformerAgent : Agent
         // Small per-step penalty (time penalty)
         AddReward(-0.0005f);
 
+        // Nearest uncollect coin first
+        Coin nearestCoin = FindNearestActiveCoin();
+        if (nearestCoin != null)
+        {
+            float distToCoin = Vector2.Distance(transform.position, nearestCoin.transform.position);
+            if (distToCoin < closestDistanceToCoin)
+            {
+                float newProgress = closestDistanceToCoin - distToCoin;
+                newProgress = Mathf.Min(newProgress, 10f);
+                AddReward(newProgress * 1f);
+                closestDistanceToCoin = distToCoin;
+                stepsSinceProgress = 0;
+            }
+        }
         // Small reward for forward progress
-        if (goalPosition != null)
+        else if (goalPosition != null)
         {
             float dx = Mathf.Abs(goalPosition.position.x - transform.position.x);
             float dy = Mathf.Abs(goalPosition.position.y - transform.position.y);
@@ -277,6 +317,7 @@ public class PlatformerAgent : Agent
             if (distanceToGoal < closestDistanceToGoal)
             {
                 float newProgress = closestDistanceToGoal - distanceToGoal;
+                newProgress = Mathf.Min(newProgress, 10f);
                 AddReward(newProgress * 1f);
                 closestDistanceToGoal = distanceToGoal;
                 stepsSinceProgress = 0;
@@ -291,6 +332,25 @@ public class PlatformerAgent : Agent
             }
         }
         previousX = transform.position.x;
+    }
+
+    private Coin FindNearestActiveCoin()
+    {
+        Coin[] allCoins = FindObjectsByType<Coin>(FindObjectsSortMode.None);
+        Coin nearest = null;
+        float nearestDist = float.MaxValue;
+
+        foreach (var coin in allCoins)
+        {
+            if (!coin.gameObject.activeSelf) continue;
+            float d = Vector2.Distance(transform.position, coin.transform.position);
+            if (d < nearestDist)
+            {
+                nearestDist = d;
+                nearest = coin;
+            }
+        }
+        return nearest;
     }
 
     // Check whether there is a physical reason to jump right now: ground ahead/below doesn't continue
@@ -408,7 +468,8 @@ public class PlatformerAgent : Agent
 
     public void OnCoinCollected()
     {
-        AddReward(0.1f);
+        AddReward(5.0f);
+        closestDistanceToCoin = LARGE_DISTANCE; // reset for next coin
     }
 
     public void OnGoalReached()

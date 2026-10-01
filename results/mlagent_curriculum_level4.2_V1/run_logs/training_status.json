@@ -1,0 +1,41 @@
+{
+    "coin_difficulty": {
+        "lesson_num": 1
+    },
+    "MLAgent": {
+        "checkpoints": [
+            {
+                "steps": 499988,
+                "file_path": "results\\mlagent_curriculum_level4.2_V1\\MLAgent\\MLAgent-499988.onnx",
+                "reward": 66.35827780393214,
+                "creation_time": 1790754344.2389886,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_level4.2_V1\\MLAgent\\MLAgent-499988.pt"
+                ]
+            },
+            {
+                "steps": 965123,
+                "file_path": "results\\mlagent_curriculum_level4.2_V1\\MLAgent\\MLAgent-965123.onnx",
+                "reward": 67.01052305021175,
+                "creation_time": 1790756555.5831704,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_level4.2_V1\\MLAgent\\MLAgent-965123.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 965123,
+            "file_path": "results\\mlagent_curriculum_level4.2_V1\\MLAgent.onnx",
+            "reward": 67.01052305021175,
+            "creation_time": 1790756555.5831704,
+            "auxillary_file_paths": [
+                "results\\mlagent_curriculum_level4.2_V1\\MLAgent\\MLAgent-965123.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.1.0",
+        "torch_version": "2.2.2+cpu"
+    }
+}

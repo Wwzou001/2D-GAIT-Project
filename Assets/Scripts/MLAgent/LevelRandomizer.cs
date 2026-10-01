@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.Tilemaps;
 
 // Randomise start position, goal position, and a level specifix set of obstacle position each episode
 public class LevelRandomizer : MonoBehaviour
@@ -44,6 +45,14 @@ public class LevelRandomizer : MonoBehaviour
     [SerializeField] private List<Transform> enemyTransforms;
     private float enemyDifficulty = 0f;
 
+    // Curriculum -- coins
+    [SerializeField] private List<Transform> coinTransforms;
+    [SerializeField] private float coinMargin = 1f; // coin stay away from start/goal for at least 1 grid
+    [SerializeField] private float coinStartMargin = 2f; // coin stay away form start at least 2 grid
+    private float coinDifficulty = 1f;
+
+    public void SetCoinDifficulty(float difficulty) => coinDifficulty = Mathf.Clamp01(difficulty);
+
     public float EffectiveEnemyDifficulty => overrideEnemyDifficultyForTesting ? testEnemyDifficulty : enemyDifficulty;
     public void SetEnemyDifficulty(float difficulty) => enemyDifficulty = Mathf.Clamp01(difficulty);
 
@@ -55,6 +64,18 @@ public class LevelRandomizer : MonoBehaviour
 
     public void SetSpikeDifficulty(float difficulty) => spikeDifficulty = Mathf.Clamp01(difficulty);
 
+    // Curriculum -- hazards pits
+    [SerializeField] private Tilemap groundTilemap;
+    [SerializeField] private TileBase groundTile;
+    [SerializeField] private TileBase groundTileLower;
+    [SerializeField] private List<Transform> pitTransforms;
+    private float pitDifficulty = 1f;
+    private int pitColumnMinY; // record initial lowest y
+
+    public void SetPitDifficulty(float difficulty) => pitDifficulty = Mathf.Clamp01(difficulty);
+
+    private List<Vector3Int> pitCandidatePositions = new List<Vector3Int>();
+
     private List<float> enemyInitialYs = new List<float>();
 
     private void Start()
@@ -63,6 +84,40 @@ public class LevelRandomizer : MonoBehaviour
         {
             enemyInitialYs.Add(enemy != null ? enemy.position.y : 0f);
         }
+
+        GeneratePitCandidates();
+    }
+
+    private void GeneratePitCandidates()
+    {
+        pitCandidatePositions.Clear();
+
+        if (startPosition == null || groundTilemap == null) return;
+
+        int startTileX = Mathf.RoundToInt(startPosition.position.x);
+        int excludeRange = 1;
+
+        groundTilemap.CompressBounds();
+        BoundsInt bounds = groundTilemap.cellBounds;
+
+        pitColumnMinY = bounds.yMin;
+
+        for (int x = Mathf.CeilToInt(mapMinX); x <= Mathf.FloorToInt(mapMaxX); x++)
+        {
+            if (Mathf.Abs(x - startTileX) <= excludeRange) continue;
+
+            // Start from top to down find first
+            for (int y = bounds.yMax - 1; y >= bounds.yMin; y--)
+            {
+                if (groundTilemap.HasTile(new Vector3Int(x, y, 0)))
+                {
+                    pitCandidatePositions.Add(new Vector3Int(x, y, 0));
+                    break;
+                }
+            }
+        }
+
+        Debug.Log($"[LevelRandomizer] Generated {pitCandidatePositions.Count} pit candidates");
     }
 
     // Fixed y position, only x is randomised
@@ -95,6 +150,8 @@ public class LevelRandomizer : MonoBehaviour
         PlaceObstaclesBetween(startPos.x, goalPos.x);
         PlaceSpikes(startPos.x, goalPos.x);
         PlaceEnemiesBetween(startPos.x, goalPos.x);
+        PlaceCoins(startPos.x, goalPos.x);
+        PlacePits();
     }
 
     // Divide the space between start and goal into one slot per obstacle, and place each obstacle at random x within its own slot
@@ -256,6 +313,288 @@ public class LevelRandomizer : MonoBehaviour
             enemy.GetComponent<FlyingEnemy>()?.ResetForEpisode();
             enemy.GetComponent<CrossMoveFlyingEnemy>()?.ResetForEpisode();
         }
+    }
+
+    private void PlaceCoins(float startX, float goalX)
+    {
+        if (coinTransforms == null || coinTransforms.Count == 0) return;
+
+        // Base on difficulty to choose coins active amount
+        int totalCount = coinTransforms.Count;
+        int activeCount = Mathf.RoundToInt(coinDifficulty * totalCount);
+        activeCount = Mathf.Clamp(activeCount, 0, totalCount);
+
+        foreach (var coin in coinTransforms)
+        {
+            if (coin != null) coin.gameObject.SetActive(false);
+        }
+
+        int count = activeCount;
+
+        if (count == 0) return;
+
+        float leftLow, leftHigh, rightLow, rightHigh;
+
+        if (goalX >= startX)
+        {
+            leftLow = mapMinX + coinMargin;
+            leftHigh = startX - coinStartMargin;
+            rightLow = startX + coinStartMargin;
+            rightHigh = goalX - coinMargin;
+        }
+        else
+        {
+            leftLow = goalX + coinMargin;
+            leftHigh = startX - coinStartMargin;
+            rightLow = startX + coinStartMargin;
+            rightHigh = mapMaxX - coinMargin;
+        }
+
+        // One coin
+        if (count == 1) 
+        {
+            float x;
+            bool leftAvailable = leftHigh > leftLow;
+            bool rightAvailable = rightHigh > rightLow;
+
+            if (leftAvailable && rightAvailable)
+            {
+                x = Random.value < 0.5f ? Random.Range(leftLow, leftHigh) : Random.Range(rightLow, rightHigh);
+            }
+            else if (leftAvailable)
+            {
+                x = Random.Range(leftLow, leftHigh);
+            }
+            else if (rightAvailable)
+            {
+                x = Random.Range(rightLow, rightHigh);
+            }
+            else
+            {
+                return;
+            }
+
+            SetCoinPosition(coinTransforms[0], x);
+        }
+        // Three coins
+        else if (count == 3)
+        {
+            if (leftHigh > leftLow)
+            {
+                SetCoinPosition(coinTransforms[0], Random.Range(leftLow, leftHigh));
+            }
+            else if (rightHigh > rightLow) 
+            {
+                float rightSlotWidth = (rightHigh - rightLow) / 3f;
+                SetCoinPosition(coinTransforms[0], Random.Range(rightLow, rightLow + rightSlotWidth));
+            }
+            else
+            {
+                return;
+            }
+
+            if (rightHigh > rightLow)
+            {
+                float rightMid = (rightLow + rightHigh) / 2;
+                SetCoinPosition(coinTransforms[1], Random.Range(rightLow, rightMid));
+                SetCoinPosition(coinTransforms[2], Random.Range(rightMid, rightHigh));
+            }
+        }
+        // Other amount coins
+        else
+        {
+            float low = Mathf.Min(startX, goalX) + coinMargin;
+            float high = Mathf.Max(startX, goalX) - coinMargin;
+            if (high <= low) return;
+            float slotWidth = (high - low) / count;
+
+            for (int i = 0; i < count; i++)
+            {
+                float slotLow = low + slotWidth * i;
+                float slotHigh = slotLow + slotWidth;
+                SetCoinPosition(coinTransforms[i], Random.Range(slotLow, slotHigh));
+            }
+        }
+    }
+
+    private void SetCoinPosition(Transform coin, float x)
+    {
+        if (coin == null) return;
+        coin.gameObject.SetActive(true);
+        Vector3 pos = coin.position;
+        pos.x = x;
+        coin.position = pos;
+    }
+
+    private void PlacePits()
+    {
+        if (groundTilemap == null || groundTile == null) return;
+        if (pitTransforms == null || pitTransforms.Count == 0) return;
+        if (pitCandidatePositions.Count == 0) return;
+
+        int maxPits = Mathf.Min(pitTransforms.Count, pitCandidatePositions.Count);
+        int activeCount = Mathf.RoundToInt(pitDifficulty * pitTransforms.Count);
+        activeCount = Mathf.Clamp(activeCount, 0, maxPits);
+
+        float startX = startPosition != null ? startPosition.position.x : 0f;
+        float goalX = goalPosition != null ? goalPosition.position.x : 0f;
+        float lowX = Mathf.Min(startX, goalX);
+        float highX = Mathf.Max(startX, goalX);
+
+        int startTileX = Mathf.RoundToInt(startX);
+        int goalTileX = Mathf.RoundToInt(goalX);
+        int dir = goalTileX >= startTileX ? 1 : -1; // which side goal at
+
+        // No pit near start position for 1 gap
+        int startForbidMin = startTileX - 1;
+        int startForbidMax = startTileX + 1;
+
+        // No pit near goal position for 2 gaps
+        int goalForbidMin = dir > 0 ? goalTileX -2 : goalTileX;
+        int goalForbidMax = dir > 0 ? goalTileX : goalTileX + 2;
+
+        List<Vector3Int> validCandidates = new List<Vector3Int>();
+
+        foreach (var pos in pitCandidatePositions)
+        {
+            float cellLeftX = groundTilemap.CellToWorld(pos).x;
+            float cellRightX = cellLeftX + groundTilemap.cellSize.x * 2f;
+            float worldX = (cellLeftX + cellRightX) * 0.5f;
+
+            // Only keep candidate between start and goal
+            if (worldX <= lowX || worldX >= highX) continue;
+
+            // Not over right wall
+            if (pos.x + 1 > Mathf.FloorToInt(mapMaxX)) continue;
+
+            // Pit cover range and skip when in start range
+            if (pos.x <= startForbidMax && pos.x + 1 >= startForbidMin) continue;
+
+            // Pit cover range and skip when in goal range
+            if (pos.x <= goalForbidMax && pos.x + 1 >= goalForbidMin) continue;
+
+            validCandidates.Add(pos);
+        }
+
+        // Candidate not enough, return
+        if (validCandidates.Count < activeCount)
+        {
+            activeCount = Mathf.Min(activeCount, validCandidates.Count);
+        }
+
+        // Reset whole column
+        foreach (var pos in pitCandidatePositions)
+        {
+            // Reset upper tile
+            for (int dx = 0; dx < 2; dx++) 
+            {
+                int x = pos.x + dx;
+
+                // Exclude wall for both side
+                if (x < Mathf.CeilToInt(mapMinX)) continue;
+                if (x > Mathf.FloorToInt(mapMaxX)) continue;
+
+                groundTilemap.SetTile(new Vector3Int(x, pos.y, 0), groundTile);
+
+                // Reset all lower tile
+                for (int y = pos.y - 1; y >= pitColumnMinY; y--)
+                {
+                    groundTilemap.SetTile(new Vector3Int(x, y, 0), groundTileLower);
+                }
+            }          
+        }
+
+        foreach (var pit in pitTransforms)
+        {
+            if (pit != null) pit.gameObject.SetActive(false);
+        }
+
+        if (activeCount == 0) return;
+
+        // Randomise candidate
+        List<Vector3Int> shuffled = new List<Vector3Int>(validCandidates);
+        for (int i = 0; i < shuffled.Count; i++)
+        {
+            int r = Random.Range(i, shuffled.Count);
+            (shuffled[i], shuffled[r]) = (shuffled[r], shuffled[i]);
+        }
+
+        int minPitGapBetweenSelected = 3; // gap between selected pit >= 3
+        List<Vector3Int> selected = new List<Vector3Int>();
+
+        foreach (var candidate in shuffled)
+        {
+            if (selected.Count >= activeCount) break;
+
+            bool tooClose = false;
+            foreach(var s in selected)
+            {
+                if (Mathf.Abs(candidate.x - s.x) <= minPitGapBetweenSelected)
+                {
+                    tooClose = true;
+                    break;
+                }
+            }
+
+            if (!tooClose) selected.Add(candidate);
+        }
+
+        // If select not enough, increat gap and retry
+        if (selected.Count < activeCount)
+        {
+            int relaxedGap = 3;
+            selected.Clear();
+
+            foreach (var candidate in shuffled)
+            {
+                if (selected.Count >= activeCount) break;
+
+                bool tooClose = false;
+                foreach (var s in selected)
+                {
+                    if (Mathf.Abs(candidate.x - s.x) <= relaxedGap)
+                    {
+                        tooClose = true;
+                        break;
+                    }
+                }
+
+                if (!tooClose) selected.Add(candidate);
+            }
+        }
+
+        // Remove select column tile
+        for (int i = 0; i < selected.Count; i++)
+        {
+            Vector3Int tilePos = selected[i];
+
+            // Remove upper tile + all lower tile
+            for (int dx = 0; dx < 2; dx++)
+            {
+                int x = tilePos.x + dx;
+
+                for (int y = tilePos.y; y >= pitColumnMinY; y--)
+                {
+                    groundTilemap.SetTile(new Vector3Int(x, y, 0), null);
+                }
+            }
+
+            if (i < pitTransforms.Count && pitTransforms[i] != null)
+            {
+                Transform pit = pitTransforms[i];
+                pit.gameObject.SetActive(true);
+
+                Vector3 worldPos = groundTilemap.CellToWorld(tilePos);
+                worldPos.x += groundTilemap.cellSize.x * 1f;
+                worldPos.y = pit.position.y;
+
+                pit.position = worldPos;
+            }
+        }
+        Debug.Log($"[PlacePits] startTileX={startTileX}, goalTileX={goalTileX}, dir={dir}, " +
+          $"forbidStart=[{startForbidMin},{startForbidMax}], " +
+          $"forbidGoal=[{goalForbidMin},{goalForbidMax}], " +
+          $"validCandidates={validCandidates.Count}, activeCount={activeCount}, selected={selected.Count}");
     }
 
     private bool SlotsWideEnough(float startX, float goalX, int obstacleCount)

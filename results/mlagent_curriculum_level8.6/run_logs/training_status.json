@@ -24,15 +24,33 @@
                 "auxillary_file_paths": [
                     "results\\mlagent_curriculum_level8.6\\MLAgent\\MLAgent-542036.pt"
                 ]
+            },
+            {
+                "steps": 999996,
+                "file_path": "results\\mlagent_curriculum_level8.6\\MLAgent\\MLAgent-999996.onnx",
+                "reward": 28.04240422847008,
+                "creation_time": 1790652731.6040611,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_level8.6\\MLAgent\\MLAgent-999996.pt"
+                ]
+            },
+            {
+                "steps": 1008480,
+                "file_path": "results\\mlagent_curriculum_level8.6\\MLAgent\\MLAgent-1008480.onnx",
+                "reward": 26.591241685513456,
+                "creation_time": 1790652769.529022,
+                "auxillary_file_paths": [
+                    "results\\mlagent_curriculum_level8.6\\MLAgent\\MLAgent-1008480.pt"
+                ]
             }
         ],
         "final_checkpoint": {
-            "steps": 542036,
+            "steps": 1008480,
             "file_path": "results\\mlagent_curriculum_level8.6\\MLAgent.onnx",
-            "reward": 27.078130113203887,
-            "creation_time": 1790604219.3364668,
+            "reward": 26.591241685513456,
+            "creation_time": 1790652769.529022,
             "auxillary_file_paths": [
-                "results\\mlagent_curriculum_level8.6\\MLAgent\\MLAgent-542036.pt"
+                "results\\mlagent_curriculum_level8.6\\MLAgent\\MLAgent-1008480.pt"
             ]
         }
     },

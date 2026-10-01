@@ -23,6 +23,6 @@ public class Coin : MonoBehaviour
             agent.OnCoinCollected();
         }
 
-        Destroy(gameObject);
+        gameObject.SetActive(false);
     }
 }

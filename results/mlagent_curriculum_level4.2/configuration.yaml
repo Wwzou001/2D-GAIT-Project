@@ -65,14 +65,14 @@ engine_settings:
   no_graphics: false
   no_graphics_monitor: false
 environment_parameters:
-  spike_difficulty:
+  coin_difficulty:
     curriculum:
     - value:
         sampler_type: constant
         sampler_parameters:
-          seed: 3227
-          value: 0.0
-      name: Lesson0_NoSpikes
+          seed: 7174
+          value: 0.33
+      name: Lesson0_1Coin
       completion_criteria:
         behavior: MLAgent
         measure: reward
@@ -83,63 +83,15 @@ environment_parameters:
     - value:
         sampler_type: constant
         sampler_parameters:
-          seed: 3228
-          value: 0.5
-      name: Lesson1_1Spike
-      completion_criteria:
-        behavior: MLAgent
-        measure: reward
-        min_lesson_length: 300
-        signal_smoothing: true
-        threshold: 22.0
-        require_reset: true
-    - value:
-        sampler_type: constant
-        sampler_parameters:
-          seed: 3229
+          seed: 7175
           value: 1.0
-      name: Lesson2_2Spikes
-      completion_criteria: null
-  enemy_difficulty:
-    curriculum:
-    - value:
-        sampler_type: constant
-        sampler_parameters:
-          seed: 3230
-          value: 0.0
-      name: Lesson0_NoEnemy
-      completion_criteria:
-        behavior: MLAgent
-        measure: reward
-        min_lesson_length: 300
-        signal_smoothing: true
-        threshold: 22.0
-        require_reset: true
-    - value:
-        sampler_type: constant
-        sampler_parameters:
-          seed: 3231
-          value: 0.5
-      name: Lesson1_1Enemy
-      completion_criteria:
-        behavior: MLAgent
-        measure: reward
-        min_lesson_length: 300
-        signal_smoothing: true
-        threshold: 22.0
-        require_reset: true
-    - value:
-        sampler_type: constant
-        sampler_parameters:
-          seed: 3232
-          value: 1.0
-      name: Lesson2_2Enemy
+      name: Lesson1_3Coins
       completion_criteria: null
 checkpoint_settings:
-  run_id: mlagent_curriculum_level8.6
+  run_id: mlagent_curriculum_level4.2
   initialize_from: null
   load_model: false
-  resume: true
+  resume: false
   force: false
   train_model: false
   inference: false
