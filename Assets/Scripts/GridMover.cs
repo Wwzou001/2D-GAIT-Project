@@ -88,4 +88,10 @@ public class GridMover : MonoBehaviour
             default: return Vector2Int.zero;
         }
     }
+    // Lets RoomGenerator (or any other setup script) override where this
+    // starts, since startPosition is otherwise baked into the prefab.
+    public void SetStartPosition(Vector2Int pos)
+    {
+        startPosition = pos;
+    }
 }

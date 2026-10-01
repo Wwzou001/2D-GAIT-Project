@@ -16,7 +16,7 @@ public class RoomSpec
     public GameObject playerPrefab;
     public GameObject obstaclePrefab;
     public Vector2Int playerStart = new Vector2Int(0, 0);
-    public int obstacleCount = 4;
+    public int obstacleCount = 1;
 
     [Header("A*")]
     public bool includeAStarAgent = false;
@@ -110,7 +110,8 @@ public class RoomGenerator : MonoBehaviour
 
         if (spec.includeFSMAgent)
         {
-            Spawn(spec.fsmAgentPrefab, spec.fsmAgentStart, root, "FSMAgent");
+            GameObject fsmAgent = Spawn(spec.fsmAgentPrefab, spec.fsmAgentStart, root, "FSMAgent");
+            WirePlayerReference(fsmAgent, player);
         }
 
         if (spec.includeBehaviourTreeAgent)
@@ -264,6 +265,36 @@ public class RoomGenerator : MonoBehaviour
 
         GameObject go = Instantiate(prefab, new Vector3(cell.x, cell.y, 0f), Quaternion.identity, root);
         go.name = name;
+
+        // GridMover's own Start() overrides position based on its own
+        // startPosition field, so without this, every agent would end up
+        // wherever its prefab's startPosition happens to be - usually (0,0) -
+        // regardless of where RoomGenerator actually placed it.
+        GridMover mover = go.GetComponent<GridMover>();
+        if (mover != null)
+        {
+            mover.SetStartPosition(cell);
+        }
+
         return go;
+    }
+    // Several agent types (FSM, and likely others) need a reference to the
+    // player's GridMover to actually do anything. This wires that up
+    // automatically after spawning, the same way SpawnFlies() already does
+    // for fly.player, so nothing needs fixing by hand afterward.
+    private void WirePlayerReference(GameObject agent, GameObject player)
+    {
+        if (agent == null || player == null)
+            return;
+
+        FSMEnemyController fsm = agent.GetComponent<FSMEnemyController>();
+        if (fsm != null)
+        {
+            GridMover playerMover = player.GetComponent<GridMover>();
+            if (playerMover != null)
+            {
+                fsm.SetPlayer(playerMover);
+            }
+        }
     }
 }

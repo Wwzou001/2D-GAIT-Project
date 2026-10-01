@@ -435,4 +435,10 @@ public class FSMEnemyController : MonoBehaviour
             foreach (Vector2Int p in searchPoints)
                 Gizmos.DrawWireSphere(GridSystem.Instance.GridToWorld(p), 0.12f);
     }
+    // Lets RoomGenerator (or any other setup script) assign the player
+    // reference after spawning, since it's private for the Inspector otherwise.
+    public void SetPlayer(GridMover p)
+    {
+        player = p;
+    }
 }
