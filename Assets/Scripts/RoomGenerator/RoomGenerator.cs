@@ -33,20 +33,6 @@ public class RoomSpec
     public GameObject behaviourTreeAgentPrefab;
     public Vector2Int behaviourTreeAgentStart = new Vector2Int(9, 9);
 
-    [Header("MCTS")]
-    public bool includeMCTSAgent = false;
-    public GameObject mctsAgentPrefab;
-    public Vector2Int mctsAgentStart = new Vector2Int(9, 9);
-
-    [Header("ML-Agents")]
-    // ML-Agents setups usually need more than just placing a prefab (an
-    // Academy, Behavior Parameters, training area bounds, and so on).
-    // This places the prefab like every other agent; anything ML-Agents
-    // needs beyond that is still configured on the prefab itself for now.
-    public bool includeMLAgent = false;
-    public GameObject mlAgentPrefab;
-    public Vector2Int mlAgentStart = new Vector2Int(9, 9);
-
     [Header("Steering / Flocking")]
     public bool includeFlies = false;
     public GameObject flyPrefab;
@@ -119,16 +105,6 @@ public class RoomGenerator : MonoBehaviour
             Spawn(spec.behaviourTreeAgentPrefab, spec.behaviourTreeAgentStart, root, "BehaviourTreeAgent");
         }
 
-        if (spec.includeMCTSAgent)
-        {
-            Spawn(spec.mctsAgentPrefab, spec.mctsAgentStart, root, "MCTSAgent");
-        }
-
-        if (spec.includeMLAgent)
-        {
-            Spawn(spec.mlAgentPrefab, spec.mlAgentStart, root, "MLAgent");
-        }
-
         if (spec.includeFlies)
         {
             SpawnFlies(spec, root, player);
@@ -161,7 +137,7 @@ public class RoomGenerator : MonoBehaviour
         Vector2Int[] startsToAvoid =
         {
             spec.playerStart, spec.aStarAgentStart, spec.fsmAgentStart,
-            spec.behaviourTreeAgentStart, spec.mctsAgentStart, spec.mlAgentStart
+            spec.behaviourTreeAgentStart
         };
 
         int placed = 0;
@@ -186,7 +162,7 @@ public class RoomGenerator : MonoBehaviour
         bool[] active =
         {
             spec.includePlayer, spec.includeAStarAgent, spec.includeFSMAgent,
-            spec.includeBehaviourTreeAgent, spec.includeMCTSAgent, spec.includeMLAgent
+            spec.includeBehaviourTreeAgent
         };
 
         for (int i = 0; i < starts.Length; i++)
