@@ -22,11 +22,15 @@ public class PlatformerAgent : Agent
     [SerializeField] private LayerMask goalLayer;
     [SerializeField] private LayerMask coinLayer;
 
-    [SerializeField] private float groundCheckDistance = 0.3f;
+    [SerializeField] private float groundCheckDistance = 0.5f;
     [SerializeField] private float forwardCheckDistance = 0.6f;
     [SerializeField] private float unjustifiedJumpPenalty = -0.1f;
 
     [SerializeField] private float fixedJumpPenalty = -0.5f;
+
+    [SerializeField] private bool useAntiStallPenalty = false;
+    [SerializeField] private int stallPenaltyInterval = 100; // unit is decision making step
+    [SerializeField] private float stallPenalty = -0.5f;
 
     // Diable log for manualy testing
     [SerializeField] private bool logEachStep = false;
@@ -82,8 +86,11 @@ public class PlatformerAgent : Agent
             float coinDifficulty = Academy.Instance.EnvironmentParameters.GetWithDefault("coin_difficulty", 1f);
             levelRandomizer.SetCoinDifficulty(coinDifficulty);
 
-            float pitDifficulty = Academy.Instance.EnvironmentParameters.GetWithDefault("pit_difficulty", 1f);
+            float pitDifficulty = Academy.Instance.EnvironmentParameters.GetWithDefault("pit_difficulty", 0f);
             levelRandomizer.SetPitDifficulty(pitDifficulty);
+
+            float platformDifficulty = Academy.Instance.EnvironmentParameters.GetWithDefault("platform_difficulty", 0f);
+            levelRandomizer.SetPlatformDifficulty(platformDifficulty);
         }
 
         // Randomise goal direction/distacne and obstacle placement before anything below read goalPos
@@ -325,10 +332,10 @@ public class PlatformerAgent : Agent
             else
             {
                 stepsSinceProgress++;
-                //if (stepsSinceProgress % 200 == 0)
-                //{ 
-                //    AddReward(-0.5f); 
-                //}
+                if (useAntiStallPenalty && stepsSinceProgress % stallPenaltyInterval == 0)
+                {
+                    AddReward(stallPenalty);
+                }
             }
         }
         previousX = transform.position.x;
@@ -362,7 +369,7 @@ public class PlatformerAgent : Agent
         Vector3 feetPosition = controller.GroundCheckPoint != null ? controller.GroundCheckPoint.position : transform.position;
         
         // Is the ground directly below about to end?
-        Vector2 groundCheckOrigin = feetPosition + new Vector3(facing * 0.4f, 0f, 0f);
+        Vector2 groundCheckOrigin = feetPosition + new Vector3(facing * 0.8f, 0f, 0f);
         bool groundContinuesAhead = Physics2D.Raycast(groundCheckOrigin, Vector2.down, groundCheckDistance, obstacleLayer);
 
         // Is there something solid directly ahead at foot height, block a walk through?
@@ -377,7 +384,7 @@ public class PlatformerAgent : Agent
 
         Vector3 feetPosition = (controller != null && controller.GroundCheckPoint.position != null) ? controller.GroundCheckPoint.position : transform.position;
 
-        Vector2 groundCheckOrigin = feetPosition + new Vector3(facing * 0.4f, 0f, 0f);
+        Vector2 groundCheckOrigin = feetPosition + new Vector3(facing * 0.8f, 0f, 0f);
         Gizmos.color = Color.red;
         Gizmos.DrawLine(groundCheckOrigin, groundCheckOrigin + Vector2.down * groundCheckDistance);
         Gizmos.DrawWireSphere(groundCheckOrigin, 0.03f);

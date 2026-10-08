@@ -74,9 +74,33 @@ public class LevelRandomizer : MonoBehaviour
 
     public void SetPitDifficulty(float difficulty) => pitDifficulty = Mathf.Clamp01(difficulty);
 
+    [SerializeField] private bool overridePitDifficultyForTesting = false;
+    [SerializeField] private float testPitDifficulty = 1f;
+
+    public float EffectivePitDifficulty => overridePitDifficultyForTesting ? testPitDifficulty : pitDifficulty;
+
     private List<Vector3Int> pitCandidatePositions = new List<Vector3Int>();
 
     private List<float> enemyInitialYs = new List<float>();
+
+    // Curriculum -- platform level (gap + platform)
+    [SerializeField] private List<Transform> gapTransforms; // gap position
+    [SerializeField] private List<Transform> platformTransforms; // platform above each gap
+    [SerializeField] private float groundY = -1f;
+    [SerializeField] private float platformHeightAboveGround = 1f; // hight between platform and ground
+    [SerializeField] private float gapMinWidth = 2f;
+    [SerializeField] private float gapMaxWidth = 3f;
+    private float platformDifficulty = 0f;
+    private List<Vector3Int> lastGapTiles = new List<Vector3Int>();
+
+    [SerializeField] private bool placeGoalOnGround = false;
+
+    // Manual test override
+    [SerializeField] private bool overridePlatformDifficultyForTesting = false;
+    [SerializeField] private float testPlatformDifficulty = 1f;
+
+    public void SetPlatformDifficulty(float difficulty) => platformDifficulty = Mathf.Clamp01(difficulty);
+    public float EffectivePlatformDifficulty => overridePlatformDifficultyForTesting ? testPlatformDifficulty : platformDifficulty;
 
     private void Start()
     {
@@ -106,8 +130,8 @@ public class LevelRandomizer : MonoBehaviour
         {
             if (Mathf.Abs(x - startTileX) <= excludeRange) continue;
 
-            // Start from top to down find first
-            for (int y = bounds.yMax - 1; y >= bounds.yMin; y--)
+            // Start from top to bottom to find first tile from groundY 
+            for (int y = Mathf.RoundToInt(groundY); y >= bounds.yMin; y--)
             {
                 if (groundTilemap.HasTile(new Vector3Int(x, y, 0)))
                 {
@@ -116,8 +140,8 @@ public class LevelRandomizer : MonoBehaviour
                 }
             }
         }
-
-        Debug.Log($"[LevelRandomizer] Generated {pitCandidatePositions.Count} pit candidates");
+        Debug.Log($"[GeneratePitCandidates] pitColumnMinY={pitColumnMinY}, bounds.yMin={bounds.yMin}, " +
+            $"bounds.yMax={bounds.yMax}, pitCandidates={pitCandidatePositions.Count}");
     }
 
     // Fixed y position, only x is randomised
@@ -144,7 +168,13 @@ public class LevelRandomizer : MonoBehaviour
         while (attempts < maxSeparationRetries && !SlotsWideEnough(startPos.x, clampedGoalX, obstacleCount));
 
         Vector3 goalPos = goalPosition.position;
+
         goalPos.x = clampedGoalX;
+        if (placeGoalOnGround)
+        {
+            goalPos.y = groundY + 1f + 0.5f;
+        }
+
         goalPosition.position = goalPos;
 
         PlaceObstaclesBetween(startPos.x, goalPos.x);
@@ -152,6 +182,7 @@ public class LevelRandomizer : MonoBehaviour
         PlaceEnemiesBetween(startPos.x, goalPos.x);
         PlaceCoins(startPos.x, goalPos.x);
         PlacePits();
+        PlaceGapsAndPlatforms(startPos.x, goalPos.x);
     }
 
     // Divide the space between start and goal into one slot per obstacle, and place each obstacle at random x within its own slot
@@ -433,7 +464,7 @@ public class LevelRandomizer : MonoBehaviour
         if (pitCandidatePositions.Count == 0) return;
 
         int maxPits = Mathf.Min(pitTransforms.Count, pitCandidatePositions.Count);
-        int activeCount = Mathf.RoundToInt(pitDifficulty * pitTransforms.Count);
+        int activeCount = Mathf.RoundToInt(EffectivePitDifficulty * pitTransforms.Count);
         activeCount = Mathf.Clamp(activeCount, 0, maxPits);
 
         float startX = startPosition != null ? startPosition.position.x : 0f;
@@ -482,6 +513,7 @@ public class LevelRandomizer : MonoBehaviour
             activeCount = Mathf.Min(activeCount, validCandidates.Count);
         }
 
+        Debug.Log($"[PlacePits] resetting {pitCandidatePositions.Count} columns, first pos.y={pitCandidatePositions[0].y}");
         // Reset whole column
         foreach (var pos in pitCandidatePositions)
         {
@@ -595,6 +627,113 @@ public class LevelRandomizer : MonoBehaviour
           $"forbidStart=[{startForbidMin},{startForbidMax}], " +
           $"forbidGoal=[{goalForbidMin},{goalForbidMax}], " +
           $"validCandidates={validCandidates.Count}, activeCount={activeCount}, selected={selected.Count}");
+    }
+
+    private void PlaceGapsAndPlatforms(float startX, float goalX)
+    {
+        if (gapTransforms == null || gapTransforms.Count == 0) return;
+        if (platformTransforms == null || platformTransforms.Count == 0) return;
+        if (groundTilemap == null || groundTile == null) return;
+
+        float groundSurfaceY = groundY + 1f;
+
+        // Only reset pit when no pit
+        bool hasPits = pitTransforms != null && pitTransforms.Count > 0;
+
+        if (!hasPits )
+        {
+            int wallMargin = 1; // wall width
+            for (int x = Mathf.CeilToInt(mapMinX) + wallMargin; x <= Mathf.FloorToInt(mapMaxX) - wallMargin; x++)
+            {
+                for (int y = Mathf.RoundToInt(groundY); y >= pitColumnMinY; y--)
+                {
+                    var tilePos = new Vector3Int(x, y, 0);
+                    if (y == Mathf.RoundToInt(groundY))
+                    {
+                        groundTilemap.SetTile(tilePos, groundTile);
+                    }
+                    else
+                    {
+                        groundTilemap.SetTile(tilePos, groundTileLower);
+                    }
+                }
+            }
+        }
+
+        lastGapTiles.Clear();
+
+        int activeCount = Mathf.RoundToInt(EffectivePlatformDifficulty * gapTransforms.Count);
+        activeCount = Mathf.Clamp(activeCount, 0, Mathf.Min(gapTransforms.Count, platformTransforms.Count));
+
+        // Invisible all gap and platform first
+        foreach (var gap in gapTransforms) if (gap != null) gap.gameObject.SetActive(false);
+        foreach (var plat in platformTransforms) if (plat != null) plat.gameObject.SetActive(false);
+
+        if (activeCount == 0) return;
+
+        // Place gap between start and goal
+        float low = Mathf.Min(startX, goalX) + obstacleMargin;
+        float high = Mathf.Max(startX, goalX) - obstacleMargin;
+        float totalSpan = high - low;
+
+        // If space not enough, return
+        if (totalSpan < activeCount * gapMaxWidth)
+        {
+            Debug.LogWarning($"[PlaceGapsAndPlatforms] Not enough space: totalSpan={totalSpan}, needed={activeCount * gapMaxWidth}");
+            return;
+        }
+
+        for (int i = 0; i < activeCount; i++)
+        {
+            // Each gap position
+            float slotWidth = totalSpan / activeCount;
+            float slotLow = low + (totalSpan / activeCount) * i;
+            float slotHigh = slotLow + (totalSpan / activeCount);
+
+            // SlotWidth must >= gapMaxWidth
+            if (slotHigh - slotLow < gapMaxWidth)
+            {
+                Debug.LogWarning($"[PlaceGapsAndPlatforms] Slot {i} too narrow");
+                continue;
+            }
+
+            // Gap center
+            float gapCenterX = Random.Range(slotLow + gapMaxWidth / 2f, slotHigh - gapMaxWidth / 2f);
+
+            // Gap width
+            float gapWidth = Random.Range(gapMinWidth, gapMaxWidth);
+
+            // Create gap on tilemap
+            int gapTileLeft = Mathf.RoundToInt(gapCenterX - gapWidth / 2f);
+            int gapTileRight = Mathf.RoundToInt(gapCenterX + gapWidth / 2f);
+
+            Debug.Log($"[PlaceGapsAndPlatforms] gap {i}: centerX={gapCenterX:F2}, width={gapWidth:F2}, left={gapTileLeft}, right={gapTileRight}, groundY={groundY}, pitColumnMinY={pitColumnMinY}");
+
+            for (int x = gapTileLeft; x < gapTileRight; x++)
+            {
+                for (int y = Mathf.RoundToInt(groundY); y >= pitColumnMinY; y--)
+                {
+                    var tilePos = new Vector3Int(x, y, 0);
+                    groundTilemap.SetTile(tilePos, null);
+                    lastGapTiles.Add(tilePos); // record for next episode
+                }
+            }
+
+            // Place gap label
+            if (i < gapTransforms.Count && gapTransforms[i] != null)
+            {
+                gapTransforms[i].gameObject.SetActive(true);
+                gapTransforms[i].position = new Vector3(gapCenterX, groundY, 0);
+            }
+
+            // Place platform above gap
+            if (i < platformTransforms.Count && platformTransforms[i] != null)
+            {
+                platformTransforms[i].gameObject.SetActive(true);
+                platformTransforms[i].position = new Vector3(gapCenterX, groundSurfaceY + platformHeightAboveGround, 0);
+            }
+        }
+        Debug.Log($"[PlaceGapsAndPlatforms] activeCount={activeCount}, span={totalSpan}");
     }
 
     private bool SlotsWideEnough(float startX, float goalX, int obstacleCount)

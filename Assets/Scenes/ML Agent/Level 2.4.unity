@@ -243,8 +243,12 @@ PrefabInstance:
       value: -0.2
       objectReference: {fileID: 0}
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: m_Model
+      value: 
+      objectReference: {fileID: 5022602860645237092, guid: 0ab717f5f6b0a9e428e809efc6812b9e, type: 3}
+    - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_BehaviorType
-      value: 0
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1176024958656758575, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Name
@@ -555,6 +559,16 @@ MonoBehaviour:
   pitTransforms:
   - {fileID: 1424154237}
   - {fileID: 1489414744}
+  overridePitDifficultyForTesting: 1
+  testPitDifficulty: 1
+  gapTransforms: []
+  platformTransforms: []
+  groundY: -1
+  platformHeightAboveGround: 1
+  gapMinWidth: 2
+  gapMaxWidth: 3
+  overridePlatformDifficultyForTesting: 0
+  testPlatformDifficulty: 1
 --- !u!4 &755431375
 Transform:
   m_ObjectHideFlags: 0

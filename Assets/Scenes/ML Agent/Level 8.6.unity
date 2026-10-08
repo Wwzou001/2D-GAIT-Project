@@ -2307,8 +2307,12 @@ PrefabInstance:
       value: 128
       objectReference: {fileID: 0}
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: m_Model
+      value: 
+      objectReference: {fileID: 5022602860645237092, guid: 82ac71395a930fb42b7df00f816fe8ad, type: 3}
+    - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_BehaviorType
-      value: 0
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1176024958656758575, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Name
@@ -2704,12 +2708,21 @@ MonoBehaviour:
   overrideSpikeDifficultyForTesting: 0
   testSpikeDifficulty: 1
   minEnemyGap: 10
-  overrideEnemyDifficultyForTesting: 0
+  overrideEnemyDifficultyForTesting: 1
   testEnemyDifficulty: 1
   enemyTransforms:
   - {fileID: 1208449519}
   - {fileID: 705290488}
+  coinTransforms: []
+  coinMargin: 1
+  coinStartMargin: 2
   spikeTransforms: []
+  groundTilemap: {fileID: 0}
+  groundTile: {fileID: 0}
+  groundTileLower: {fileID: 0}
+  pitTransforms: []
+  goalPlatformTransforms: []
+  platformHalfWidth: 1.5
 --- !u!4 &831981323
 Transform:
   m_ObjectHideFlags: 0

@@ -237,6 +237,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: flag
       objectReference: {fileID: 0}
+    - target: {fileID: 8215711225015207939, guid: b5aa3bd2957ee61478f84dbd4f96da87, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2317,16 +2321,20 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1208404024}
     - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: coinLayer.m_Bits
+      value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: fixedJumpPenalty
       value: -0.5
       objectReference: {fileID: 0}
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Model
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 5022602860645237092, guid: 8450dce57c4a5df4db6606097d482920, type: 3}
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_BehaviorType
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1176024958656758575, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Name
@@ -2708,12 +2716,12 @@ MonoBehaviour:
   startPosition: {fileID: 1334835642}
   goalPosition: {fileID: 149611764}
   obstacleTransforms: []
-  minSeparation: 15
-  maxSeparation: 17
+  minSeparation: 14
+  maxSeparation: 16
   allowGoalOnEitherSide: 1
   obstacleMargin: 1.5
-  mapMinX: -18
-  mapMaxX: 18
+  mapMinX: -17
+  mapMaxX: 17
   minObstacleGap: 2
   maxSeparationRetries: 10
   maxObstacleGap: 4
@@ -2726,7 +2734,16 @@ MonoBehaviour:
   enemyTransforms:
   - {fileID: 8651394155131958014}
   - {fileID: 53407707}
+  coinTransforms: []
+  coinMargin: 1
+  coinStartMargin: 2
   spikeTransforms: []
+  groundTilemap: {fileID: 0}
+  groundTile: {fileID: 0}
+  groundTileLower: {fileID: 0}
+  pitTransforms: []
+  goalPlatformTransforms: []
+  platformHalfWidth: 1.5
 --- !u!4 &1208404025
 Transform:
   m_ObjectHideFlags: 0

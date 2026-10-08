@@ -1,6 +1,7 @@
 conda activate mlagents
 mlagents-learn MLAgent.yaml --run-id=mlagent_test
 mlagents-learn MLAgent_curriculum.yaml --run-id=mlagent_curriculum
-mlagents-learn MLAgent.yaml --run-id=mlagent_test -- initialize-from=mlagent_test
+mlagents-learn MLAgent.yaml --run-id=mlagent_test --initialize-from=mlagent_test
+mlagents-learn MLAgent_curriculum.yaml --run-id=mlagent_curriculum --initialize-from=mlagent_curriculum
 
 tensorboard --logdir results

@@ -419,6 +419,23 @@ MonoBehaviour:
   minObstacleGap: 2.5
   maxSeparationRetries: 10
   maxObstacleGap: 2.5
+  minSpikeGap: 4
+  overrideSpikeDifficultyForTesting: 0
+  testSpikeDifficulty: 1
+  minEnemyGap: 8
+  overrideEnemyDifficultyForTesting: 0
+  testEnemyDifficulty: 1
+  enemyTransforms: []
+  coinTransforms: []
+  coinMargin: 1
+  coinStartMargin: 2
+  spikeTransforms: []
+  groundTilemap: {fileID: 0}
+  groundTile: {fileID: 0}
+  groundTileLower: {fileID: 0}
+  pitTransforms: []
+  goalPlatformTransforms: []
+  platformHalfWidth: 1.5
 --- !u!4 &642796282
 Transform:
   m_ObjectHideFlags: 0
@@ -617,10 +634,10 @@ PrefabInstance:
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Model
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 5022602860645237092, guid: e84bd36b41097274d98088b327479e84, type: 3}
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_BehaviorType
-      value: 0
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1176024958656758575, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Name

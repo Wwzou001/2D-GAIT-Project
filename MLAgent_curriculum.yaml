@@ -97,27 +97,63 @@ environment_parameters:
     #     - name: Lesson1_3Coins
     #       value: 1.0
 
-    pit_difficulty:
+    # pit_difficulty: 0.5
+    # pit_difficulty:
+    #   curriculum:
+    #     - name: Lesson0_NoPit
+    #       completion_criteria:
+    #         measure: reward
+    #         behavior: MLAgent
+    #         threshold: 25
+    #         require_reset: true
+    #         min_lesson_length: 300
+    #         signal_smoothing: true
+    #       value: 0.0
+
+    #     - name: Lesson1_1Pit
+    #       completion_criteria:
+    #         measure: reward
+    #         behavior: MLAgent
+    #         threshold: 22
+    #         require_reset: true
+    #         min_lesson_length: 300
+    #         signal_smoothing: true
+    #       value: 0.5
+
+    #     - name: Lesson2_2Pits
+    #       value: 1.0
+
+    platform_difficulty:
       curriculum:
-        - name: Lesson0_NoPit
-          completion_criteria:
-            measure: reward
-            behavior: MLAgent
-            threshold: 25
-            require_reset: true
-            min_lesson_length: 300
-            signal_smoothing: true
-          value: 0.0
+      - name: Lesson0_NoGap
+        completion_criteria:
+          measure: reward
+          behavior: MLAgent
+          threshold: 25
+          require_reset: true
+          min_lesson_length: 500
+          signal_smoothing: true
+        value: 0.0
 
-        - name: Lesson1_1Pit
-          completion_criteria:
-            measure: reward
-            behavior: MLAgent
-            threshold: 22
-            require_reset: true
-            min_lesson_length: 300
-            signal_smoothing: true
-          value: 0.5
+      - name: Lesson1_OneGap
+        completion_criteria:
+          measure: reward
+          behavior: MLAgent
+          threshold: 20
+          require_reset: true
+          min_lesson_length: 500
+          signal_smoothing: true
+        value: 0.33
 
-        - name: Lesson2_2Pits
-          value: 1.0
+      - name: Lesson2_TwoGaps
+        completion_criteria:
+          measure: reward
+          behavior: MLAgent
+          threshold: 18
+          require_reset: true
+          min_lesson_length: 500
+          signal_smoothing: true
+        value: 0.66
+
+      - name: Lesson3_ThirdGaps
+        value: 1.0

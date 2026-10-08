@@ -196,6 +196,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: ground enemy
       objectReference: {fileID: 0}
+    - target: {fileID: 1676150460304083804, guid: fba5b0130dee2d64b862c2bdc86380a4, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 1766604221502294341, guid: fba5b0130dee2d64b862c2bdc86380a4, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.65
@@ -256,6 +260,11 @@ PrefabInstance:
 --- !u!4 &301582848 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4249628271548593199, guid: fba5b0130dee2d64b862c2bdc86380a4, type: 3}
+  m_PrefabInstance: {fileID: 301582847}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &301582849 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1766604221502294341, guid: fba5b0130dee2d64b862c2bdc86380a4, type: 3}
   m_PrefabInstance: {fileID: 301582847}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &364354954
@@ -2024,6 +2033,22 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b5aa3bd2957ee61478f84dbd4f96da87, type: 3}
+--- !u!114 &942163506 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7333572497929979956, guid: b5aa3bd2957ee61478f84dbd4f96da87, type: 3}
+  m_PrefabInstance: {fileID: 942163505}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b138523277a8f744397fae6b5e106712, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelEndFlag
+--- !u!4 &942163507 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2347467889145821913, guid: b5aa3bd2957ee61478f84dbd4f96da87, type: 3}
+  m_PrefabInstance: {fileID: 942163505}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &975620147
 GameObject:
   m_ObjectHideFlags: 0
@@ -2053,28 +2078,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1cc0ea0fcd6aa5a4aa9ac6c9d4707a59, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelRandomizer
-  startPosition: {fileID: 0}
-  goalPosition: {fileID: 0}
+  startPosition: {fileID: 364354955}
+  goalPosition: {fileID: 942163507}
   obstacleTransforms: []
-  minSeparation: 8
-  maxSeparation: 10
+  minSeparation: 12
+  maxSeparation: 14
   allowGoalOnEitherSide: 1
   obstacleMargin: 1.5
-  mapMinX: -14
-  mapMaxX: 14
+  mapMinX: -13
+  mapMaxX: 13
   minObstacleGap: 2
   maxSeparationRetries: 10
   maxObstacleGap: 4
   minSpikeGap: 4
-  overrideSpikeDifficultyForTesting: 1
+  overrideSpikeDifficultyForTesting: 0
   testSpikeDifficulty: 1
   minEnemyGap: 5
-  overrideEnemyDifficultyForTesting: 0
+  overrideEnemyDifficultyForTesting: 1
   testEnemyDifficulty: 1
-  enemyTransforms: []
+  enemyTransforms:
+  - {fileID: 301582849}
+  coinTransforms: []
+  coinMargin: 1
+  coinStartMargin: 2
   spikeTransforms:
   - {fileID: 0}
   - {fileID: 0}
+  groundTilemap: {fileID: 0}
+  groundTile: {fileID: 0}
+  groundTileLower: {fileID: 0}
+  pitTransforms: []
+  goalPlatformTransforms: []
+  platformHalfWidth: 1.5
 --- !u!4 &975620149
 Transform:
   m_ObjectHideFlags: 0
@@ -2177,6 +2212,34 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: goalPosition
+      value: 
+      objectReference: {fileID: 942163507}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: levelEndFlag
+      value: 
+      objectReference: {fileID: 942163506}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: startPosition
+      value: 
+      objectReference: {fileID: 364354955}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: levelRandomizer
+      value: 
+      objectReference: {fileID: 975620148}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: coinLayer.m_Bits
+      value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: fixedJumpPenalty
+      value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: m_Model
+      value: 
+      objectReference: {fileID: 5022602860645237092, guid: a6937aaaa73fc044eb276e665dc0725a, type: 3}
     - target: {fileID: 1176024958656758575, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Name
       value: Player

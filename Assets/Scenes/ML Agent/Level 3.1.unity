@@ -1754,8 +1754,24 @@ MonoBehaviour:
   minObstacleGap: 2
   maxSeparationRetries: 10
   maxObstacleGap: 5
+  minSpikeGap: 4
+  overrideSpikeDifficultyForTesting: 1
+  testSpikeDifficulty: 1
+  minEnemyGap: 8
+  overrideEnemyDifficultyForTesting: 0
+  testEnemyDifficulty: 1
+  enemyTransforms: []
+  coinTransforms: []
+  coinMargin: 1
+  coinStartMargin: 2
   spikeTransforms:
   - {fileID: 2093813968}
+  groundTilemap: {fileID: 0}
+  groundTile: {fileID: 0}
+  groundTileLower: {fileID: 0}
+  pitTransforms: []
+  goalPlatformTransforms: []
+  platformHalfWidth: 1.5
 --- !u!4 &1571466078
 Transform:
   m_ObjectHideFlags: 0
@@ -1960,6 +1976,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: flag
       objectReference: {fileID: 0}
+    - target: {fileID: 8215711225015207939, guid: b5aa3bd2957ee61478f84dbd4f96da87, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2161,16 +2181,20 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1571466077}
     - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: coinLayer.m_Bits
+      value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: fixedJumpPenalty
       value: -0.5
       objectReference: {fileID: 0}
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Model
       value: 
-      objectReference: {fileID: 5022602860645237092, guid: 5f45bec44921e7e43bf2d36886c5d34e, type: 3}
+      objectReference: {fileID: 5022602860645237092, guid: 8e995e7ee335d3841a242954d1bfe60e, type: 3}
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_BehaviorType
-      value: 0
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1176024958656758575, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Name
