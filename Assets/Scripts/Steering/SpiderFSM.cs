@@ -3,12 +3,12 @@ using UnityEngine;
 using SteeringBehaviours;
  
 [RequireComponent(typeof(Rigidbody2D))]
-public class FlyFSM : MonoBehaviour
+public class SpiderFSM : MonoBehaviour
 {
-    public enum FlyState { Flocking, Alone, Fleeing }
-    public enum FlyEvent { JoinedFlock, LostFlock, ScaredByPlayer, PlayerGotFar }
+    public enum SpiderState { Flocking, Alone, Fleeing }
+    public enum SpiderEvent { JoinedFlock, LostFlock, ScaredByPlayer, PlayerGotFar }
  
-    public FlyState State = FlyState.Alone;
+    public SpiderState State = SpiderState.Alone;
  
 // Flee From Player
     public Transform player;
@@ -44,7 +44,7 @@ public class FlyFSM : MonoBehaviour
     private Rigidbody2D rb;
     private List<Transform> neighbours = new List<Transform>();
  
-    private static List<FlyFSM> AllFlies = new List<FlyFSM>();
+    private static List<SpiderFSM> AllSpiders = new List<SpiderFSM>();
  
     private void Awake()
     {
@@ -53,12 +53,12 @@ public class FlyFSM : MonoBehaviour
  
     private void OnEnable()
     {
-        AllFlies.Add(this);
+        AllSpiders.Add(this);
     }
  
     private void OnDisable()
     {
-        AllFlies.Remove(this);
+        AllSpiders.Remove(this);
     }
  
     private void FixedUpdate()
@@ -72,7 +72,7 @@ public class FlyFSM : MonoBehaviour
     {
         neighbours.Clear();
  
-        foreach (FlyFSM other in AllFlies)
+        foreach (SpiderFSM other in AllSpiders)
         {
             if (other == this)
                 continue;
@@ -94,52 +94,52 @@ public class FlyFSM : MonoBehaviour
  
             if (distanceToPlayer < fleeTriggerRange)
             {
-                HandleEvent(FlyEvent.ScaredByPlayer);
+                HandleEvent(SpiderEvent.ScaredByPlayer);
                 return; // don't also process flock events while fleeing
             }
  
-            if (State == FlyState.Fleeing && distanceToPlayer > stopFleeingRange)
+            if (State == SpiderState.Fleeing && distanceToPlayer > stopFleeingRange)
             {
-                HandleEvent(FlyEvent.PlayerGotFar);
+                HandleEvent(SpiderEvent.PlayerGotFar);
             }
         }
  
-        if (State == FlyState.Fleeing)
+        if (State == SpiderState.Fleeing)
             return; // stay fleeing until PlayerGotFar fires above
  
         if (neighbours.Count == 0)
         {
-            HandleEvent(FlyEvent.LostFlock);
+            HandleEvent(SpiderEvent.LostFlock);
         }
         else
         {
-            HandleEvent(FlyEvent.JoinedFlock);
+            HandleEvent(SpiderEvent.JoinedFlock);
         }
     }
  
-    private void HandleEvent(FlyEvent e)
+    private void HandleEvent(SpiderEvent e)
     {
         // any state can be scared into fleeing
-        if (e == FlyEvent.ScaredByPlayer)
+        if (e == SpiderEvent.ScaredByPlayer)
         {
-            State = FlyState.Fleeing;
+            State = SpiderState.Fleeing;
             return;
         }
  
-        if (e == FlyEvent.PlayerGotFar && State == FlyState.Fleeing)
+        if (e == SpiderEvent.PlayerGotFar && State == SpiderState.Fleeing)
         {
             // go back to flocking if there's a flock to rejoin, otherwise alone
-            State = neighbours.Count > 0 ? FlyState.Flocking : FlyState.Alone;
+            State = neighbours.Count > 0 ? SpiderState.Flocking : SpiderState.Alone;
             return;
         }
  
-        if (e == FlyEvent.LostFlock && State == FlyState.Flocking)
+        if (e == SpiderEvent.LostFlock && State == SpiderState.Flocking)
         {
-            State = FlyState.Alone;
+            State = SpiderState.Alone;
         }
-        else if (e == FlyEvent.JoinedFlock && State == FlyState.Alone)
+        else if (e == SpiderEvent.JoinedFlock && State == SpiderState.Alone)
         {
-            State = FlyState.Flocking;
+            State = SpiderState.Flocking;
         }
     }
  
@@ -148,7 +148,7 @@ public class FlyFSM : MonoBehaviour
         Vector2 currentPos = rb.position;
         Vector2 desiredVelocity;
  
-        if (State == FlyState.Flocking)
+        if (State == SpiderState.Flocking)
         {
             Vector2 separation = separationWeight * Steering.GetSeparation(currentPos, neighbours, maxSpeed);
             Vector2 cohesion = cohesionWeight * Steering.GetCohesion(currentPos, neighbours, maxSpeed);
@@ -161,9 +161,9 @@ public class FlyFSM : MonoBehaviour
                 ? combined.normalized * maxSpeed
                 : Vector2.zero;
         }
-        else if (State == FlyState.Alone)
+        else if (State == SpiderState.Alone)
         {
-            Transform nearest = FindNearestFlyAnyDistance();
+            Transform nearest = FindNearestSpiderAnyDistance();
  
             desiredVelocity = nearest != null
                 ? Steering.SeekCore(currentPos, nearest.position, maxSpeed)
@@ -182,12 +182,12 @@ public class FlyFSM : MonoBehaviour
         rb.AddForce(force);
     }
  
-    private Transform FindNearestFlyAnyDistance()
+    private Transform FindNearestSpiderAnyDistance()
     {
         Transform nearest = null;
         float nearestDistance = float.MaxValue;
  
-        foreach (FlyFSM other in AllFlies)
+        foreach (SpiderFSM other in AllSpiders)
         {
             if (other == this)
                 continue;

@@ -2,11 +2,11 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
  
-// Runs the rules of the game:
+// Runs the rules of the game.
 //   Win:  pick up the key, then reach the door cell.
 //   Lose: the enemy catches the player.
-// It also counts flies and updates the HUD, and spawns the key
-// once every fly has been shot.
+// It also counts flies, spawns the key once every fly has been shot,
+// and exposes the numbers that GameHud draws.
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
@@ -19,26 +19,29 @@ public class GameManager : MonoBehaviour
     // The floor cell in front of the door. The player wins by standing here with the key.
     [SerializeField] private Vector2Int doorGridPosition;
  
-    [Header("End screen")]
+    [Header("UI")]
     [SerializeField] private GameObject endGamePanel;
     [SerializeField] private TMP_Text resultText;
  
- /* old code for ui panel
-    [Header("HUD icon rows (one picture per item)")]
-    [SerializeField] private IconCounter coinCounter;
-    [SerializeField] private IconCounter keyCounter;
-    [SerializeField] private IconCounter fliesShotCounter;   // shows flies collected by shooting
- */
-    // Other scripts (like PlayerShooting) check this so they stop once the game is over.
-    public bool GameOver => gameOver;
+    // Optional. The old text style counter. Leave empty if you use the GameHud pictures.
+    [SerializeField] private TMP_Text coinCounterText;
  
     private bool gameOver = false;
     private bool hasKey = false;
+    private bool keySpawned = false;   // the key only appears once
  
-    private int totalFlies = 0;            // how many flies there were at the start
-    private int fliesShot = 0;             // flies hit by a flame, they count as collected
-    private bool keySpawned = false;       // the key only appears once
-
+    private int totalFlies = 0;        // how many flies there were at the start
+    private int fliesShot = 0;         // flies hit by a flame, they count as collected
+ 
+    public bool GameOver => gameOver;
+ 
+    // Lets RoomGenerator move the win cell to match the room size.
+    public void SetDoorPosition(Vector2Int cell)
+    {
+        doorGridPosition = cell;
+    }
+ 
+    // Numbers for the HUD (GameHud reads these).
     public int TotalCoins => GridSystem.Instance != null ? GridSystem.Instance.TotalCoins : 0;
     public int CoinsCollected => GridSystem.Instance != null
         ? GridSystem.Instance.TotalCoins - GridSystem.Instance.RemainingCoins()
@@ -50,13 +53,9 @@ public class GameManager : MonoBehaviour
  
     private void Awake()
     {
-
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
         Instance = this;
+ 
+        // Make sure a game left paused by an earlier run does not start frozen.
         Time.timeScale = 1f;
  
         if (endGamePanel != null)
@@ -66,7 +65,10 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         // Count the flies once at the start so the HUD can show "shot / total".
-        totalFlies = FindObjectsByType<FlyFSM>(FindObjectsSortMode.None).Length;
+        totalFlies = FindObjectsByType<SpiderFSM>(FindObjectsSortMode.None).Length;
+ 
+        // Only the player can pick up the key. Without this the enemy could take it
+        // and the player would then be able to win without ever touching the key.
         if (enemy != null)
         {
             enemy.CanCollectKeys = false;
@@ -78,6 +80,7 @@ public class GameManager : MonoBehaviour
             GridSystem.Instance.KeyCollected += HandleKeyCollected;
         }
  
+        UpdateCoinCounter();
     }
  
     private void OnDestroy()
@@ -88,21 +91,25 @@ public class GameManager : MonoBehaviour
         }
     }
  
-    // Called by GridMover after every move.
+    // Called by GridMover after every successful move.
     public void CheckGameState()
     {
         if (gameOver)
             return;
  
+        UpdateCoinCounter();
  
-        // LOSS: the enemy is on the same cell as the player.
-        if (player != null && enemy != null && player.GridPosition == enemy.GridPosition)
+        // LOSS CONDITION
+        // Player and enemy occupy the same grid square.
+        if (player != null && enemy != null &&
+            player.GridPosition == enemy.GridPosition)
         {
             LoseGame();
             return;
         }
  
-        // WIN: the player has the key and is standing on the door cell.
+        // WIN CONDITION
+        // The player has the key and is standing on the door cell.
         if (player != null && hasKey && player.GridPosition == doorGridPosition)
         {
             WinGame();
@@ -112,78 +119,76 @@ public class GameManager : MonoBehaviour
     private void HandleKeyCollected(Vector2Int pos)
     {
         hasKey = true;
+        UpdateCoinCounter();
     }
  
     // Called by Projectile every time a flame hits a fly.
     // The fly counts as collected straight away.
-    public void FlyShot()
+    public void SpiderShot()
     {
         fliesShot++;
+        UpdateCoinCounter();
  
         // When the last fly has been shot, the key appears on a random empty cell.
         if (!keySpawned && totalFlies > 0 && fliesShot >= totalFlies)
         {
             keySpawned = true;
  
-            // Do not drop the key on the cell the player is standing on.
-            Vector2Int avoid = player != null ? player.GridPosition : new Vector2Int(-1, -1);
-            GridSystem.Instance.SpawnKeyRandomly(avoid);
+            // Do not put the key on the cell the player is standing on, or on the door cell.
+            Vector2Int playerCell = player != null ? player.GridPosition : new Vector2Int(-1, -1);
+            GridSystem.Instance.SpawnKeyRandomly(playerCell, doorGridPosition);
         }
     }
  
- /* old code now swiched to GameHud.cs
-    // Refreshes every icon row in the HUD. Each row can be left empty if you do not use it.
+    // Updates the optional text counter. Does nothing if it is not assigned.
     private void UpdateCoinCounter()
     {
-        if (GridSystem.Instance == null)
+        if (coinCounterText == null || GridSystem.Instance == null)
             return;
  
-        if (coinCounter != null)
+        string text = $"Coins: {CoinsCollected} / {TotalCoins}";
+        text += $"\nKey: {KeysCollected} / {TotalKeys}";
+ 
+        if (totalFlies > 0)
         {
-            int totalCoins = GridSystem.Instance.TotalCoins;
-            int collectedCoins = totalCoins - GridSystem.Instance.RemainingCoins();
-            coinCounter.SetCount(collectedCoins, totalCoins);
+            text += $"\nSpiders: {fliesShot} / {totalFlies}";
         }
  
-        if (keyCounter != null)
-        {
-            keyCounter.SetCount(GridSystem.Instance.KeysCollected, GridSystem.Instance.TotalKeys);
-        }
- 
-        if (fliesShotCounter != null)
-        {
-            fliesShotCounter.SetCount(fliesShot, totalFlies);
-        }
+        coinCounterText.text = text;
     }
-*/
  
     private void WinGame()
     {
         gameOver = true;
-        ShowEndScreen("YOU WIN!");
-    }
  
-    private void LoseGame()
-    {
-        gameOver = true;
-        ShowEndScreen("YOU LOSE!");
-    }
- 
-    private void ShowEndScreen(string message)
-    {
-        Time.timeScale = 0f;   // pause the game
+        Debug.Log("GAME OVER - PLAYER WINS!");
  
         if (endGamePanel != null)
             endGamePanel.SetActive(true);
  
         if (resultText != null)
-            resultText.text = message;
+            resultText.text = "YOU WIN!";
     }
  
-    // Hook this up to the Restart button.
+    private void LoseGame()
+    {
+        gameOver = true;
+ 
+        Debug.Log("GAME OVER - PLAYER LOSES!");
+ 
+        if (endGamePanel != null)
+            endGamePanel.SetActive(true);
+ 
+        if (resultText != null)
+            resultText.text = "YOU LOSE!";
+    }
+ 
     public void RestartGame()
     {
         Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+ 
+        SceneManager.LoadScene(
+            SceneManager.GetActiveScene().buildIndex
+        );
     }
 }

@@ -52,17 +52,17 @@ public class Projectile : MonoBehaviour
         if (other.GetComponent<Projectile>() != null) return;
  
         // Hit a fly: it counts as collected right now.
-        FlyFSM fly = other.GetComponent<FlyFSM>();
-        if (fly != null)
+        SpiderFSM spider = other.GetComponent<SpiderFSM>();
+        if (spider != null)
         {
             isFinished = true;
  
             if (GameManager.Instance != null)
             {
-                GameManager.Instance.FlyShot();
+                GameManager.Instance.SpiderShot();
             }
  
-            Destroy(fly.gameObject);
+            Destroy(spider.gameObject);
             Destroy(gameObject);
             return;
         }

@@ -250,6 +250,16 @@ public class GridSystem : MonoBehaviour
         return IsInBounds(pos) && grid[pos.x, pos.y] == CellType.Slow;
     }
 
+    public void MarkObstacle(Vector2Int pos)
+    {
+        if (IsInBounds(pos)) grid[pos.x, pos.y] = CellType.Obstacle;
+    }
+
+    public void MarkSlow(Vector2Int pos)
+    {
+        if (IsInBounds(pos)) grid[pos.x, pos.y] = CellType.Slow;
+    }
+
     public void CollectCoin(Vector2Int pos)
     {
         if (IsCoin(pos))

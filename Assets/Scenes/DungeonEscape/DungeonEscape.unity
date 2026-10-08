@@ -766,7 +766,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2418080245373606543, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_Name
-      value: Fly (2)
+      value: Spider (2)
       objectReference: {fileID: 0}
     - target: {fileID: 3232298899010859361, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_LocalScale.x
@@ -910,7 +910,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2418080245373606543, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_Name
-      value: Fly
+      value: Spider
       objectReference: {fileID: 0}
     - target: {fileID: 3232298899010859361, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_LocalScale.x
@@ -1095,7 +1095,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2418080245373606543, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_Name
-      value: Fly (1)
+      value: Spider (1)
       objectReference: {fileID: 0}
     - target: {fileID: 3232298899010859361, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_LocalScale.x
@@ -2168,7 +2168,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2418080245373606543, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_Name
-      value: Fly (3)
+      value: Spider (3)
       objectReference: {fileID: 0}
     - target: {fileID: 3232298899010859361, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_LocalScale.x
@@ -2297,6 +2297,7 @@ MonoBehaviour:
   doorGridPosition: {x: 8, y: 9}
   endGamePanel: {fileID: 1887348294}
   resultText: {fileID: 1953112427}
+  coinCounterText: {fileID: 0}
 --- !u!4 &1174288609
 Transform:
   m_ObjectHideFlags: 0
@@ -2347,7 +2348,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2418080245373606543, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_Name
-      value: Fly (4)
+      value: Spider (4)
       objectReference: {fileID: 0}
     - target: {fileID: 3232298899010859361, guid: 724eb04394a92451997c74dc8f452858, type: 3}
       propertyPath: m_LocalScale.x
