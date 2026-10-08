@@ -7,20 +7,32 @@ using UnityEngine;
 /// Environment assumptions:
 /// - Movement is limited to the four cardinal grid directions.
 /// - Each normal grid step has cost 1.
-/// - GridSystem supplies bounds and fixed-obstacle information.
+/// - GridSystem supplies bounds and fixed-obstacle information. If a scene has
+///   no GridSystem but does have a TilemapGridSystem, that is used instead
+///   (a cell is blocked when it is not walkable). Scenes that already have a
+///   GridSystem behave exactly as before.
 /// - dynamicBlockedCells supplies temporary/moving obstacles for the current search.
 ///
 /// Teaching parameters:
-/// - HeuristicType selects how H is estimated:
-///   Manhattan, Euclidean, or Chebyshev.
+/// - HeuristicType selects how H is estimated (see the enum below).
 /// - SearchResult.ExploredNodes exposes G/H/F values for visualisation.
+/// - SearchResult.ComputeMilliseconds shows what one search costs, so the
+///   price of replanning every step can be demonstrated.
 /// </summary>
 public static class AStarPathfinder
 {
+    /// <summary>
+    /// How H (the estimated distance still to go) is calculated.
+    /// </summary>
     public enum HeuristicType
     {
+        /// <summary>dx + dy. Exact for 4-direction movement, so the best choice here.</summary>
         Manhattan,
+
+        /// <summary>Straight-line distance. Never overestimates, but is weaker, so it explores more nodes.</summary>
         Euclidean,
+
+        /// <summary>max(dx, dy). Meant for 8-direction movement; on this grid it underestimates and explores even more.</summary>
         Chebyshev
     }
 
@@ -45,6 +57,9 @@ public static class AStarPathfinder
         public List<Vector2Int> Path = new List<Vector2Int>();
         public List<NodeDebugInfo> ExploredNodes = new List<NodeDebugInfo>();
         public bool PathFound;
+
+        /// <summary>How long this one search took, in milliseconds.</summary>
+        public float ComputeMilliseconds;
     }
 
     private class Node
@@ -63,6 +78,10 @@ public static class AStarPathfinder
             HCost = hCost;
         }
     }
+
+    // Safety net: a tilemap has no bounds query, so an unreachable goal could
+    // otherwise keep exploring outwards. No real map comes close to this size.
+    private const int MaxExploredNodes = 20000;
 
     // Compatibility overload: existing code can still call FindPath(start, goal).
     public static List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal)
@@ -104,16 +123,31 @@ public static class AStarPathfinder
         HeuristicType heuristic,
         HashSet<Vector2Int> dynamicBlockedCells)
     {
+        System.Diagnostics.Stopwatch timer = System.Diagnostics.Stopwatch.StartNew();
+
+        SearchResult result = RunSearch(start, goal, heuristic, dynamicBlockedCells);
+
+        timer.Stop();
+        result.ComputeMilliseconds = (float)timer.Elapsed.TotalMilliseconds;
+
+        return result;
+    }
+
+    private static SearchResult RunSearch(
+        Vector2Int start,
+        Vector2Int goal,
+        HeuristicType heuristic,
+        HashSet<Vector2Int> dynamicBlockedCells)
+    {
         SearchResult result = new SearchResult();
 
-        if (GridSystem.Instance == null)
+        if (GridSystem.Instance == null && TilemapGridSystem.Instance == null)
         {
-            Debug.LogError("A*: GridSystem.Instance is null.");
+            Debug.LogError("A*: the scene has neither a GridSystem nor a TilemapGridSystem.");
             return result;
         }
 
-        if (!GridSystem.Instance.IsInBounds(start) ||
-            !GridSystem.Instance.IsInBounds(goal))
+        if (!InBounds(start) || !InBounds(goal))
         {
             Debug.LogWarning(
                 $"A*: Start {start} or goal {goal} is outside the grid."
@@ -148,6 +182,15 @@ public static class AStarPathfinder
 
         while (openList.Count > 0)
         {
+            if (result.ExploredNodes.Count >= MaxExploredNodes)
+            {
+                Debug.LogWarning(
+                    $"A*: gave up after exploring {MaxExploredNodes} nodes " +
+                    $"({start} to {goal}). Is the goal unreachable?"
+                );
+                return result;
+            }
+
             Node currentNode = GetLowestCostNode(openList);
 
             openList.Remove(currentNode);
@@ -178,7 +221,7 @@ public static class AStarPathfinder
             foreach (Vector2Int neighbour
                      in GetNeighbours(currentNode.Position))
             {
-                if (!GridSystem.Instance.IsInBounds(neighbour))
+                if (!InBounds(neighbour))
                     continue;
 
                 if (IsBlocked(
@@ -229,6 +272,30 @@ public static class AStarPathfinder
         return result;
     }
 
+    // ---------------------------------------------------------------
+    // Grid queries. GridSystem wins when it exists (the original scenes);
+    // TilemapGridSystem is only used when there is no GridSystem.
+    // ---------------------------------------------------------------
+
+    private static bool InBounds(Vector2Int position)
+    {
+        if (GridSystem.Instance != null)
+            return GridSystem.Instance.IsInBounds(position);
+
+        // The tilemap has no bounds query: cells outside the map simply are not
+        // walkable, and IsBlocked() handles that.
+        return TilemapGridSystem.Instance != null;
+    }
+
+    private static bool IsFixedObstacle(Vector2Int position)
+    {
+        if (GridSystem.Instance != null)
+            return GridSystem.Instance.IsObstacle(position);
+
+        return TilemapGridSystem.Instance != null &&
+               !TilemapGridSystem.Instance.IsWalkable(position);
+    }
+
     private static bool IsBlocked(
         Vector2Int position,
         HashSet<Vector2Int> dynamicBlockedCells,
@@ -239,7 +306,7 @@ public static class AStarPathfinder
             return false;
 
         // Fixed obstacle.
-        if (GridSystem.Instance.IsObstacle(position))
+        if (IsFixedObstacle(position))
             return true;
 
         // Moving/dynamic obstacle.

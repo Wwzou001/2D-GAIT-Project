@@ -373,6 +373,7 @@ MonoBehaviour:
   doorGridPosition: {x: 8, y: 9}
   endGamePanel: {fileID: 4540980}
   resultText: {fileID: 640244788}
+  coinCounterText: {fileID: 0}
 --- !u!4 &124114423
 Transform:
   m_ObjectHideFlags: 0
@@ -12313,11 +12314,15 @@ PrefabInstance:
     - target: {fileID: 888640216251118650, guid: 07afc37018e754bc4b5b4adf71b71196, type: 3}
       propertyPath: player
       value: 
-      objectReference: {fileID: 1955895997}
+      objectReference: {fileID: 0}
     - target: {fileID: 888640216251118650, guid: 07afc37018e754bc4b5b4adf71b71196, type: 3}
       propertyPath: debugText
       value: 
       objectReference: {fileID: 270652879}
+    - target: {fileID: 888640216251118650, guid: 07afc37018e754bc4b5b4adf71b71196, type: 3}
+      propertyPath: tilemapPlayer
+      value: 
+      objectReference: {fileID: 1955895997}
     - target: {fileID: 888640216251118650, guid: 07afc37018e754bc4b5b4adf71b71196, type: 3}
       propertyPath: movingObstacles.Array.size
       value: 1
