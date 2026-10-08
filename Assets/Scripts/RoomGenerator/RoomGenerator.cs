@@ -14,6 +14,32 @@ using UnityEngine.Tilemaps;
 // When WorldGenerator places several rooms together, it supplies a world
 // offset so each room's local coordinates land in a different,
 // non-overlapping part of the shared GridSystem.
+// All the AI techniques a room can include. Shown as one collapsible
+// "AI" header in the Inspector.
+[System.Serializable]
+public class AISettings
+{
+    [Header("A*")]
+    public bool includeAStarAgent = false;
+    public GameObject aStarAgentPrefab;
+    public Vector2Int aStarAgentStart = new Vector2Int(9, 9);
+ 
+    [Header("FSM")]
+    public bool includeFSMAgent = false;
+    public GameObject fsmAgentPrefab;
+    public Vector2Int fsmAgentStart = new Vector2Int(9, 9);
+ 
+    [Header("Behaviour Tree")]
+    public bool includeBehaviourTreeAgent = false;
+    public GameObject behaviourTreeAgentPrefab;
+    public Vector2Int behaviourTreeAgentStart = new Vector2Int(9, 9);
+ 
+    [Header("Steering / Flocking")]
+    public bool includeSpiders = false;
+    public GameObject spiderPrefab;
+    public int spiderCount = 5;
+}
+ 
 [System.Serializable]
 public class RoomSpec
 {
@@ -27,28 +53,9 @@ public class RoomSpec
     public GameObject movingObstaclePrefab;
     public Vector2Int movingObstacleStart = new Vector2Int(5, 5);
  
-    [Header("A*")]
-    public bool includeAStarAgent = false;
-    public GameObject aStarAgentPrefab;
-    public Vector2Int aStarAgentStart = new Vector2Int(9, 9);
- 
-    [Header("FSM")]
-    public bool includeFSMAgent = false;
-    public GameObject fsmAgentPrefab;
-    public Vector2Int fsmAgentStart = new Vector2Int(9, 9);
- 
-    [Header("Decision Tree / Behaviour Tree")]
-    public bool includeBehaviourTreeAgent = false;
-    public GameObject behaviourTreeAgentPrefab;
-    public Vector2Int behaviourTreeAgentStart = new Vector2Int(9, 9);
- 
-    [Header("Steering / Flocking")]
-    [UnityEngine.Serialization.FormerlySerializedAs("includeFlies")]
-    public bool includeSpiders = false;
-    [UnityEngine.Serialization.FormerlySerializedAs("flyPrefab")]
-    public GameObject spiderPrefab;
-    [UnityEngine.Serialization.FormerlySerializedAs("flyCount")]
-    public int spiderCount = 5;
+    // Every AI technique lives inside this one group, so the Inspector shows
+    // a single collapsible "AI" header with all of them under it.
+    public AISettings AI = new AISettings();
  
     [Header("Room size")]
     public int width = 10;
@@ -214,23 +221,23 @@ public class RoomGenerator : MonoBehaviour
             player = Spawn(spec.playerPrefab, spec.playerStart + offset, root, "Player");
         }
  
-        if (spec.includeAStarAgent)
+        if (spec.AI.includeAStarAgent)
         {
-            Spawn(spec.aStarAgentPrefab, spec.aStarAgentStart + offset, root, "AStarAgent");
+            Spawn(spec.AI.aStarAgentPrefab, spec.AI.aStarAgentStart + offset, root, "AStarAgent");
         }
  
-        if (spec.includeFSMAgent)
+        if (spec.AI.includeFSMAgent)
         {
-            GameObject fsmAgent = Spawn(spec.fsmAgentPrefab, spec.fsmAgentStart + offset, root, "FSMAgent");
+            GameObject fsmAgent = Spawn(spec.AI.fsmAgentPrefab, spec.AI.fsmAgentStart + offset, root, "FSMAgent");
             WirePlayerReference(fsmAgent, player);
         }
  
-        if (spec.includeBehaviourTreeAgent)
+        if (spec.AI.includeBehaviourTreeAgent)
         {
-            Spawn(spec.behaviourTreeAgentPrefab, spec.behaviourTreeAgentStart + offset, root, "BehaviourTreeAgent");
+            Spawn(spec.AI.behaviourTreeAgentPrefab, spec.AI.behaviourTreeAgentStart + offset, root, "BehaviourTreeAgent");
         }
  
-        if (spec.includeSpiders)
+        if (spec.AI.includeSpiders)
         {
             SpawnSpiders(spec, offset, root, player);
         }
@@ -328,14 +335,14 @@ public class RoomGenerator : MonoBehaviour
     {
         Vector2Int[] starts =
         {
-            spec.playerStart, spec.aStarAgentStart, spec.fsmAgentStart,
-            spec.behaviourTreeAgentStart,
+            spec.playerStart, spec.AI.aStarAgentStart, spec.AI.fsmAgentStart,
+            spec.AI.behaviourTreeAgentStart,
             spec.movingObstacleStart
         };
         bool[] active =
         {
-            spec.includePlayer, spec.includeAStarAgent, spec.includeFSMAgent,
-            spec.includeBehaviourTreeAgent,
+            spec.includePlayer, spec.AI.includeAStarAgent, spec.AI.includeFSMAgent,
+            spec.AI.includeBehaviourTreeAgent,
             spec.includeMovingObstacle
         };
  
@@ -356,7 +363,7 @@ public class RoomGenerator : MonoBehaviour
     // world offset, so nothing needs fixing by hand afterward.
     private void SpawnSpiders(RoomSpec spec, Vector2Int offset, Transform root, GameObject player)
     {
-        if (spec.spiderPrefab == null)
+        if (spec.AI.spiderPrefab == null)
         {
             Debug.LogWarning("RoomGenerator: Include Spiders is ticked but no Spider Prefab is assigned.");
             return;
@@ -370,14 +377,14 @@ public class RoomGenerator : MonoBehaviour
         Vector2 boundaryCenter = new Vector2(spec.width / 2f + offset.x, spec.height / 2f + offset.y);
         Vector2 boundaryDims = new Vector2(spec.width / 2f - 1f, spec.height / 2f - 1f);
  
-        for (int i = 0; i < spec.spiderCount; i++)
+        for (int i = 0; i < spec.AI.spiderCount; i++)
         {
             // Spawn somewhere near the middle of the room, not right on the
             // edge, so they start inside their own boundary.
             float x = boundaryCenter.x + (float)(rng.NextDouble() * 2 - 1) * (boundaryDims.x * 0.5f);
             float y = boundaryCenter.y + (float)(rng.NextDouble() * 2 - 1) * (boundaryDims.y * 0.5f);
  
-            GameObject go = Instantiate(spec.spiderPrefab, new Vector3(x, y, 0f), Quaternion.identity, root);
+            GameObject go = Instantiate(spec.AI.spiderPrefab, new Vector3(x, y, 0f), Quaternion.identity, root);
             go.name = $"Spider_{i}";
  
             SpiderFSM spider = go.GetComponent<SpiderFSM>();
