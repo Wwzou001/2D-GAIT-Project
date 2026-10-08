@@ -12,6 +12,13 @@ public class CrossMoveFlyingEnemy : MonoBehaviour
 
     [SerializeField] private bool startDirectionPositive = true; // true = starts moving up/right, false = starts moveing down/left
 
+    // Horizontal enemies patrol symmetrically around the placed position
+    [SerializeField] private bool centerHorizontalPatrol = true;
+
+    // Vertical enemy stop the downward sweep at ground
+    [SerializeField] private bool limitMinWorldY = false;
+    [SerializeField] private float minWorldY = -0.5f;
+
     // Per-instance variation
     [SerializeField, Range(0f, 0.5f)] private float speedVariation = 0.15f;
 
@@ -38,7 +45,14 @@ public class CrossMoveFlyingEnemy : MonoBehaviour
         startPosition = transform.position;
         actualSpeed = moveSpeed * Random.Range(1f - speedVariation, 1f + speedVariation);
 
-        if (startDirectionPositive)
+        if (moveAxis == Axis.Horizontal && centerHorizontalPatrol)
+        {
+            // Centred on the placed position
+            rangeMin = -travelDistance * 0.5f;
+            rangeMax = travelDistance * 0.5f;
+            direction = startDirectionPositive ? 1 : -1;
+        }
+        else if (startDirectionPositive)
         {
             rangeMin = 0f;
             rangeMax = travelDistance;
@@ -49,6 +63,12 @@ public class CrossMoveFlyingEnemy : MonoBehaviour
             rangeMin = -travelDistance;
             rangeMax = 0f;
             direction = -1;
+        }
+
+        // Keep vertical sweep above the floor
+        if (moveAxis == Axis.Vertical && limitMinWorldY)
+        {
+            rangeMin = Mathf.Min(Mathf.Max(rangeMin, minWorldY - startPosition.y), rangeMax);
         }
     }
 
@@ -101,8 +121,9 @@ public class CrossMoveFlyingEnemy : MonoBehaviour
         Vector3 center = Application.isPlaying ? (Vector3)startPosition : transform.position;
         Vector3 moveVector = moveAxis == Axis.Vertical ? Vector3.up : Vector3.right;
 
-        float min = Application.isPlaying ? rangeMin : (startDirectionPositive ? 0f : -travelDistance);
-        float max = Application.isPlaying ? rangeMax : (startDirectionPositive ? travelDistance : 0f);
+        bool centred = moveAxis == Axis.Horizontal && centerHorizontalPatrol;
+        float min = Application.isPlaying ? rangeMin : (centred ? -travelDistance * 0.5f : (startDirectionPositive ? 0f : -travelDistance));
+        float max = Application.isPlaying ? rangeMax : (centred ? travelDistance * 0.5f : (startDirectionPositive ? travelDistance : 0f));
 
         Gizmos.color = Color.cyan;
         Gizmos.DrawLine(center + moveVector * min, center + moveVector * max);

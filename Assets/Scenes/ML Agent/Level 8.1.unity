@@ -2247,12 +2247,20 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1334835642}
     - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: timeoutPenalty
+      value: -2
+      objectReference: {fileID: 0}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: levelRandomizer
       value: 
       objectReference: {fileID: 1208404024}
     - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: fixedJumpPenalty
       value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: useAntiStallPenalty
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Model
@@ -2667,8 +2675,17 @@ MonoBehaviour:
   groundTile: {fileID: 0}
   groundTileLower: {fileID: 0}
   pitTransforms: []
-  goalPlatformTransforms: []
-  platformHalfWidth: 1.5
+  overridePitDifficultyForTesting: 0
+  testPitDifficulty: 1
+  gapTransforms: []
+  platformTransforms: []
+  groundY: -1
+  platformHeightAboveGround: 1
+  gapMinWidth: 2
+  gapMaxWidth: 3
+  placeGoalOnGround: 0
+  overridePlatformDifficultyForTesting: 0
+  testPlatformDifficulty: 1
 --- !u!4 &1208404025
 Transform:
   m_ObjectHideFlags: 0
@@ -2905,6 +2922,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 529943901863738305, guid: eb845cc308f34ec40bed4b0dcdf32507, type: 3}
+      propertyPath: limitMinWorldY
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 529943901863738305, guid: eb845cc308f34ec40bed4b0dcdf32507, type: 3}
       propertyPath: speedVariation
       value: 0.5

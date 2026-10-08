@@ -2287,12 +2287,20 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1385423357}
     - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: timeoutPenalty
+      value: -2
+      objectReference: {fileID: 0}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: levelRandomizer
       value: 
       objectReference: {fileID: 1150721496}
     - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: fixedJumpPenalty
       value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -5378818407248930614, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
+      propertyPath: useAntiStallPenalty
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -335945289971144087, guid: c2100ff8efe699d448458db1f12cc909, type: 3}
       propertyPath: m_Model
@@ -2700,12 +2708,30 @@ MonoBehaviour:
   overrideSpikeDifficultyForTesting: 0
   testSpikeDifficulty: 1
   minEnemyGap: 8
-  overrideEnemyDifficultyForTesting: 1
+  overrideEnemyDifficultyForTesting: 0
   testEnemyDifficulty: 1
   enemyTransforms:
   - {fileID: 921815941}
   - {fileID: 1151006149}
+  coinTransforms: []
+  coinMargin: 1
+  coinStartMargin: 2
   spikeTransforms: []
+  groundTilemap: {fileID: 0}
+  groundTile: {fileID: 0}
+  groundTileLower: {fileID: 0}
+  pitTransforms: []
+  overridePitDifficultyForTesting: 0
+  testPitDifficulty: 1
+  gapTransforms: []
+  platformTransforms: []
+  groundY: -1
+  platformHeightAboveGround: 1
+  gapMinWidth: 2
+  gapMaxWidth: 3
+  placeGoalOnGround: 0
+  overridePlatformDifficultyForTesting: 0
+  testPlatformDifficulty: 1
 --- !u!4 &1150721497
 Transform:
   m_ObjectHideFlags: 0

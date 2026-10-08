@@ -135,8 +135,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CrossMoveFlyingEnemy
   moveAxis: 0
   moveSpeed: 1.5
-  travelDistance: 8
+  travelDistance: 3
   startDirectionPositive: 1
+  centerHorizontalPatrol: 1
+  limitMinWorldY: 0
+  minWorldY: -0.5
   speedVariation: 0.15
 --- !u!60 &6591274952847118085
 PolygonCollider2D:

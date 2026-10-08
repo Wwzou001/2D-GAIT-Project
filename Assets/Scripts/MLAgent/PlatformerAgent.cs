@@ -31,6 +31,7 @@ public class PlatformerAgent : Agent
     [SerializeField] private bool useAntiStallPenalty = false;
     [SerializeField] private int stallPenaltyInterval = 100; // unit is decision making step
     [SerializeField] private float stallPenalty = -0.5f;
+    [SerializeField] private float timeoutPenalty = -0.5f;
 
     // Diable log for manualy testing
     [SerializeField] private bool logEachStep = false;
@@ -149,7 +150,7 @@ public class PlatformerAgent : Agent
         if (episodeTime > maxEpisodeSeconds)
         {
             Debug.Log("Episode ended: TIMEOUT");
-            AddReward(-0.5f); // ran out of time -- treat as a soft failure
+            AddReward(timeoutPenalty); // ran out of time -- treat as a failure
             EndEpisode();
         }
     }
@@ -469,6 +470,7 @@ public class PlatformerAgent : Agent
 
     public void OnEnemyHit()
     {
+        Debug.Log("Episode ended: ENEMY HIT at " + transform.position);
         AddReward(-1f);
         EndEpisode();
     }
