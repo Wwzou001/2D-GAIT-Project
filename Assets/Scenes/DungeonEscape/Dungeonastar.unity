@@ -12331,6 +12331,14 @@ PrefabInstance:
       propertyPath: 'movingObstacles.Array.data[0]'
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 888640216251118650, guid: 07afc37018e754bc4b5b4adf71b71196, type: 3}
+      propertyPath: tilemapMovingObstacles.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 888640216251118650, guid: 07afc37018e754bc4b5b4adf71b71196, type: 3}
+      propertyPath: 'tilemapMovingObstacles.Array.data[0]'
+      value: 
+      objectReference: {fileID: 759980308}
     - target: {fileID: 2036431756606171528, guid: 07afc37018e754bc4b5b4adf71b71196, type: 3}
       propertyPath: m_Sprite
       value: 
@@ -12761,6 +12769,10 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 5273609359262156094, guid: 43e2a453e1d7345168d4db7d352bfa66, type: 3}
       propertyPath: m_Name
+      value: MovingObstacle
+      objectReference: {fileID: 0}
+    - target: {fileID: 5273609359262156094, guid: 43e2a453e1d7345168d4db7d352bfa66, type: 3}
+      propertyPath: m_TagString
       value: MovingObstacle
       objectReference: {fileID: 0}
     - target: {fileID: 8777630909922535645, guid: 43e2a453e1d7345168d4db7d352bfa66, type: 3}
@@ -13300,6 +13312,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6263961975557600183, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: loseDistance
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 6263961975557600183, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
       propertyPath: patrolAway.x
       value: -1
       objectReference: {fileID: 0}
@@ -13312,8 +13328,16 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6263961975557600183, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: detectDistance
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6263961975557600183, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
       propertyPath: searchDuration
       value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 6263961975557600183, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
+      propertyPath: searchAreaRadius
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 6263961975557600183, guid: cd6a9cc58debb4757a869bcfeb7e8b4f, type: 3}
       propertyPath: movingObstacles.Array.size
