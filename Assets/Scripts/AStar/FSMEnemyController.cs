@@ -52,10 +52,10 @@ public class FSMEnemyController : MonoBehaviour
         /// <summary>Patrol/GoHome: the enemy's grid position equals its current target.</summary>
         ReachedTarget,
 
-        /// <summary>The player entered detectDistance while the enemy was in Patrol or Search.</summary>
+        /// <summary>The player entered detectDistanceCells while the enemy was in Patrol or Search.</summary>
         PlayerDetected,
 
-        /// <summary>Chase: the player is further than loseDistance.</summary>
+        /// <summary>Chase: the player is further than loseDistanceCells.</summary>
         PlayerLost,
 
         /// <summary>Chase: the player is within attackDistance.</summary>
@@ -77,20 +77,19 @@ public class FSMEnemyController : MonoBehaviour
         NoiseHeard
     }
 
-    /// <summary>How elaborate the Search state is. A difficulty ladder: teach with Simple, show Smart as the model solution.</summary>
+    /// <summary>
+    /// How elaborate the Search state is. A difficulty ladder: teach with Simple, show Smart
+    /// as the model solution. The explicit numbers match the earlier versions of this enum, so
+    /// an Inspector choice saved before the cleanup (Expanding = 1, Smart = 3) still lands on
+    /// the right style.
+    /// </summary>
     public enum SearchStyle
     {
-        /// <summary>The 3x3 block around the last-known position (the original behaviour). Too small for a real search.</summary>
-        Simple,
+        /// <summary>Last-known position, then expanding rings (radius 1, 2, 3...) swept as a spiral - the "snail" pattern. (Previously called Expanding.)</summary>
+        Simple = 1,
 
-        /// <summary>Last-known position, then expanding rings (radius 1, 2, 3...) swept as a spiral - the "snail" pattern.</summary>
-        Expanding,
-
-        /// <summary>The client's description: the search area is as big as the vision distance, centred on the last-known position. Repeatedly pick a random spot inside it that has not been seen yet, walk there, and repeat until the timer runs out.</summary>
-        Probes,
-
-        /// <summary>Probes plus: follow the player's last heading first ("which way did they run?"), and re-aim the search when a noise is heard.</summary>
-        Smart
+        /// <summary>Follow the player's last heading first ("which way did they run?"), then repeatedly pick a random not-yet-seen spot inside a search area as big as the vision distance, and re-aim the search when a noise is heard.</summary>
+        Smart = 3
     }
 
     /// <summary>Sub-state of Search. Only used inside Search; the top-level FSM never sees it.</summary>
@@ -99,10 +98,10 @@ public class FSMEnemyController : MonoBehaviour
         /// <summary>Walking to the last-known position and along the player's last heading.</summary>
         FollowTrail,
 
-        /// <summary>Sweeping outward in rings around the search centre (Expanding style).</summary>
+        /// <summary>Sweeping outward in rings around the search centre (Simple style).</summary>
         Sweep,
 
-        /// <summary>Walking to a random not-yet-seen spot inside the search area (Probes / Smart styles).</summary>
+        /// <summary>Walking to a random not-yet-seen spot inside the search area (Smart style).</summary>
         Probe
     }
 
@@ -115,10 +114,10 @@ public class FSMEnemyController : MonoBehaviour
     [Header("FSM Parameters")]
     [Tooltip("The enemy starts chasing when the player is within this many grid steps (Manhattan). " +
              "It also decides how much of the map Search counts as 'seen' around the enemy.")]
-    [SerializeField] private int detectDistance = 5;
-    [Tooltip("The enemy gives up the chase beyond this distance. Kept larger than Detect Distance " +
-             "so it does not flicker between Chase and Search at the edge.")]
-    [SerializeField] private int loseDistance = 7;
+    [SerializeField] private int detectDistanceCells = 5;
+    [Tooltip("The enemy gives up the chase beyond this distance. Should be larger than Detect Distance; " +
+             "if it is not, Detect Distance + 1 is used while the game runs.")]
+    [SerializeField] private int loseDistanceCells = 7;
     [SerializeField] private int attackDistance = 1;
     [SerializeField] private float moveInterval = 0.5f;
 
@@ -127,19 +126,18 @@ public class FSMEnemyController : MonoBehaviour
     [SerializeField] private Vector2Int patrolAway = new Vector2Int(4, 4);
 
     [Header("Stage 2 - Search")]
-    [Tooltip("Simple = 3x3 around the last-known spot. Expanding = spiral rings. " +
-             "Probes = random unseen spots in the search area (the client's idea). " +
-             "Smart = Probes + follow the player's heading + react to noise.")]
+    [Tooltip("Simple = spiral rings around the last-known spot. " +
+             "Smart = follow the player's heading, then probe random unseen spots, and react to noise.")]
     [SerializeField] private SearchStyle searchStyle = SearchStyle.Smart;
     [Tooltip("Total time budget for the whole search, including walking. The client's example was 6 s " +
              "but called the area 'too small'; 20-30 gives a proper search. NOTE: an enemy that is " +
              "already in your scene keeps its old saved value, so update it in the Inspector.")]
     [SerializeField] private float searchDuration = 20f;
     [SerializeField] private float searchPointPause = 0.5f;
-    [Tooltip("Probes/Smart: how far from the last-known spot the enemy searches. The client said " +
+    [Tooltip("Smart: how far from the last-known spot the enemy searches. The client said " +
              "to use the same size as the vision distance (6). Area = (2 x radius + 1) cells across.")]
     [SerializeField] private int searchAreaRadius = 6;
-    [Tooltip("Expanding: how many rings to sweep (ring r is r cells from the centre).")]
+    [Tooltip("Simple: how many rings to sweep (ring r is r cells from the centre).")]
     [SerializeField] private int maxSearchRing = 3;
     [Tooltip("Smart: how many cells ahead of the last-known spot to check along the player's last heading.")]
     [SerializeField] private int trailLookAhead = 3;
@@ -207,7 +205,9 @@ public class FSMEnemyController : MonoBehaviour
     [SerializeField] private TMP_Text stateText;
     [Tooltip("Font size for the state panel (the legend uses 90% of this). Set to 0 to keep " +
              "whatever size you set on the text object. Ignored if Auto Size is on.")]
-    [SerializeField] private float stateFontSize = 20f;
+    [SerializeField] private float stateFontSize = 15f;
+    [Tooltip("Draws a thin black outline around the panel text so it is readable on any background.")]
+    [SerializeField] private bool improveTextContrast = true;
     [Tooltip("Optional separate text object that lists each state's colour.")]
     [SerializeField] private TMP_Text legendText;
     [Tooltip("How many recent transitions to list under the state text.")]
@@ -276,12 +276,22 @@ public class FSMEnemyController : MonoBehaviour
         CoinCollectible.CoinCollected -= OnCoinCollected;
     }
 
-    // Runs when a value is edited in the Inspector. Lose Distance must be larger than
-    // Detect Distance, otherwise the enemy flickers between Chase and Search.
+    // Lose Distance has to be larger than Detect Distance, otherwise the enemy flickers
+    // between Chase and Search at the edge. The Inspector numbers are NEVER changed for you
+    // (they stay exactly as typed); the larger value is simply used when the game runs.
+    private int EffectiveLoseDistance =>
+        Mathf.Max(loseDistanceCells, detectDistanceCells + 1);
+
+    // Only a warning, so a number you type is never rewritten behind your back.
     private void OnValidate()
     {
-        detectDistance = Mathf.Max(1, detectDistance);
-        loseDistance = Mathf.Max(loseDistance, detectDistance + 1);
+        if (loseDistanceCells <= detectDistanceCells)
+        {
+            Debug.LogWarning(
+                $"FSMEnemyController: Lose Distance ({loseDistanceCells}) should be larger than " +
+                $"Detect Distance ({detectDistanceCells}). It will act as {detectDistanceCells + 1} " +
+                "while the game runs.", this);
+        }
     }
 
     private void OnDestroy()
@@ -407,12 +417,12 @@ public class FSMEnemyController : MonoBehaviour
         {
             case EnemyState.PatrolAway:
             case EnemyState.PatrolHome:
-                if (d <= detectDistance) HandleEvent(EnemyEvent.PlayerDetected);
+                if (d <= detectDistanceCells) HandleEvent(EnemyEvent.PlayerDetected);
                 break;
 
             case EnemyState.Chase:
                 if (d <= attackDistance) HandleEvent(EnemyEvent.PlayerInAttackRange);
-                else if (d > loseDistance) HandleEvent(EnemyEvent.PlayerLost);
+                else if (d > EffectiveLoseDistance) HandleEvent(EnemyEvent.PlayerLost);
                 else
                 {
                     RememberPlayer(player.GridPosition);
@@ -421,7 +431,7 @@ public class FSMEnemyController : MonoBehaviour
                 break;
 
             case EnemyState.Search:
-                if (d <= detectDistance)
+                if (d <= detectDistanceCells)
                     HandleEvent(EnemyEvent.PlayerDetected);
                 break;
 
@@ -670,17 +680,9 @@ public class FSMEnemyController : MonoBehaviour
         switch (searchStyle)
         {
             case SearchStyle.Simple:
-                BuildSimpleSearch();
-                break;
-
-            case SearchStyle.Expanding:
+                // The last-known spot, then the spiral of rings around it.
                 TryAddSearchPoint(lastKnownPlayerPosition, 0);
                 BuildRings(lastKnownPlayerPosition, 0);
-                break;
-
-            case SearchStyle.Probes:
-                // Go to the last-known spot first; probes are added one at a time after that.
-                TryAddSearchPoint(lastKnownPlayerPosition, 0);
                 break;
 
             default:
@@ -693,22 +695,22 @@ public class FSMEnemyController : MonoBehaviour
         ResetSearchVisuals();
 
         Log($"FSM SEARCH ({searchStyle}): {searchPoints.Count} points around {lastKnownPlayerPosition}, heading {playerHeading}.");
-    }
 
-    // The original behaviour: the last-known cell plus the 3x3 block around it.
-    private void BuildSimpleSearch()
-    {
-        Vector2Int c = lastKnownPlayerPosition;
+        // Simple is a fixed pattern, so print its exact visiting order. It can be compared with
+        // the pattern drawn in the game, and it is identical every time for the same last-known cell.
+        if (showDebugLogs && searchStyle == SearchStyle.Simple)
+        {
+            StringBuilder order = new StringBuilder();
 
-        TryAddSearchPoint(c, 0);
-        TryAddSearchPoint(c + Vector2Int.up, 1);
-        TryAddSearchPoint(c + Vector2Int.right, 1);
-        TryAddSearchPoint(c + Vector2Int.down, 1);
-        TryAddSearchPoint(c + Vector2Int.left, 1);
-        TryAddSearchPoint(c + new Vector2Int(1, 1), 1);
-        TryAddSearchPoint(c + new Vector2Int(1, -1), 1);
-        TryAddSearchPoint(c + new Vector2Int(-1, -1), 1);
-        TryAddSearchPoint(c + new Vector2Int(-1, 1), 1);
+            for (int i = 0; i < searchPoints.Count; i++)
+            {
+                if (i > 0) order.Append("  >  ");
+                order.Append('(').Append(searchPoints[i].x).Append(',').Append(searchPoints[i].y)
+                     .Append(") ring ").Append(searchPointRing[i]);
+            }
+
+            Log($"FSM SEARCH (Simple) visiting order: {order}");
+        }
     }
 
     // Smart: last-known spot -> cells ahead along the heading. After the trail ends,
@@ -734,14 +736,14 @@ public class FSMEnemyController : MonoBehaviour
 
     private bool UsesProbes()
     {
-        return searchStyle == SearchStyle.Probes || searchStyle == SearchStyle.Smart;
+        return searchStyle == SearchStyle.Smart;
     }
 
     // Everything within detection range of 'centre' counts as seen: if the player
     // were there, the enemy would already have fired PlayerDetected.
     private void MarkCovered(Vector2Int centre)
     {
-        int r = Mathf.Max(0, detectDistance);
+        int r = Mathf.Max(0, detectDistanceCells);
 
         for (int dx = -r; dx <= r; dx++)
             for (int dy = -r; dy <= r; dy++)
@@ -1167,8 +1169,8 @@ public class FSMEnemyController : MonoBehaviour
     // Pretty on-screen text (TextMeshPro rich text)
     // ---------------------------------------------------------------
 
-    private const string MutedHex = "9AA3AD";   // labels
-    private const string DimHex = "444B54";     // empty bar segments / lost hearts
+    private const string MutedHex = "D3D9DF";   // labels (light enough to read on the brown background)
+    private const string DimHex = "6B7480";     // empty bar segments / lost hearts
     private const string GoodHex = "5CD65C";
     private const string WarnHex = "F2C94C";
     private const string BadHex = "FF5A5A";
@@ -1216,29 +1218,36 @@ public class FSMEnemyController : MonoBehaviour
         return sb.ToString();
     }
 
-    // Applies the optional font size once so the panel is not oversized.
+    // Sets up the panel text once: rich text, one line per row (no wrapping), an
+    // outline so it stays readable over any background, and a sensible size.
     private void StyleTexts()
     {
-        if (stateFontSize <= 0f) return;
+        StyleText(stateText, stateFontSize);
+        StyleText(legendText, stateFontSize * 0.9f);
+    }
 
-        if (stateText != null)
-        {
-            stateText.richText = true;
-            stateText.fontSize = stateFontSize;
-        }
+#pragma warning disable 0618   // enableWordWrapping is obsolete in newer TextMeshPro but still works
+    private void StyleText(TMP_Text text, float fontSize)
+    {
+        if (text == null) return;
 
-        if (legendText != null)
+        text.richText = true;
+        text.enableWordWrapping = false;   // each row stays on one line
+        text.raycastTarget = false;        // never blocks mouse clicks
+
+        if (fontSize > 0f) text.fontSize = fontSize;
+
+        if (improveTextContrast)
         {
-            legendText.richText = true;
-            legendText.fontSize = stateFontSize * 0.9f;
+            text.outlineWidth = 0.22f;
+            text.outlineColor = new Color32(0, 0, 0, 255);
         }
     }
+#pragma warning restore 0618
 
     // e.g. "Follow trail" or "Sweep - ring 2 of 3".
     private string DescribeSearchPhase()
     {
-        if (searchStyle == SearchStyle.Simple) return "Look around";
-
         SearchPhase phase = CurrentSearchPhase();
 
         if (phase == SearchPhase.FollowTrail) return "Follow trail";
@@ -1273,30 +1282,22 @@ public class FSMEnemyController : MonoBehaviour
         sb.Append("<nobr><size=140%><b><color=#").Append(accent).Append('>')
           .Append(PrettyState(currentState).ToUpper()).Append("</color></b></size></nobr>\n");
 
-        AppendRow(sb, "Previous", PrettyState(previousState));
-        AppendRow(sb, "Last event", lastEventName);
-        AppendRow(sb, "Target", targetPosition.ToString());
-        AppendRow(sb, "Player distance", d.ToString());
-        AppendRow(sb, "Player lives", BuildHearts());
+        AppendRow(sb, "From", $"{PrettyState(previousState)}  ({lastEventName})");
+        AppendRow(sb, "Target", $"{targetPosition}   player {d} away");
+        AppendRow(sb, "Lives", BuildHearts());
 
         if (currentState == EnemyState.Search)
         {
-            AppendRow(sb, "Search style", searchStyle.ToString());
-            AppendRow(sb, "Search phase", DescribeSearchPhase());
-            AppendRow(sb, "Search time", $"{searchTimer:0.0} / {searchDuration:0.0}s");
+            AppendRow(sb, "Search", $"{searchStyle}  |  {DescribeSearchPhase()}");
 
-            if (UsesProbes())
-            {
-                AppendRow(sb, "Area seen", $"{AreaCoveragePercent():0}%  (radius {searchAreaRadius})");
-                AppendRow(sb, "Probes", probeCount.ToString());
-            }
-            else
-            {
-                AppendRow(sb, "Checked", $"{searchChecked.Count} / {searchPoints.Count} points");
-            }
+            string progress = UsesProbes()
+                ? $"seen {AreaCoveragePercent():0}%  |  {probeCount} probes"
+                : $"{searchChecked.Count} / {searchPoints.Count} points";
 
-            if (searchStyle == SearchStyle.Smart)
-                AppendRow(sb, "Player heading", playerHeading == Vector2Int.zero ? "unknown" : playerHeading.ToString());
+            AppendRow(sb, "Time", $"{searchTimer:0} / {searchDuration:0} s  |  {progress}");
+
+            if (searchStyle == SearchStyle.Smart && playerHeading != Vector2Int.zero)
+                AppendRow(sb, "Heading", playerHeading.ToString());
         }
 
         if (stage >= FSMStage.Stage3_Snooze)
@@ -1307,7 +1308,7 @@ public class FSMEnemyController : MonoBehaviour
             AppendRow(sb, "Energy", $"{energy:0}  {BuildEnergyBar()}{zzz}");
 
             if (currentState != EnemyState.Snooze)
-                AppendRow(sb, "Awake for", $"{awakeTimer:0} s  (can nap after {minAwakeSeconds:0} s)");
+                AppendRow(sb, "Awake", $"{awakeTimer:0} / {minAwakeSeconds:0} s");
         }
 
         if (transitionHistory.Count > 0)
@@ -1330,7 +1331,7 @@ public class FSMEnemyController : MonoBehaviour
     // In-game search path (works in the Game view, no Gizmos needed)
     //   blue line  = the route the enemy has actually walked
     //   thin line  = the planned route through the remaining search points
-    //   dashed-ish square outline = the search area (Probes / Smart)
+    //   dashed-ish square outline = the search area (Smart)
     //   dots       = search points: green = trail/ring, red = probe,
     //                faded = already checked, big = current target
     // ---------------------------------------------------------------

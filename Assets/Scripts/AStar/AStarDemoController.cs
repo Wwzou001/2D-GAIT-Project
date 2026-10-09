@@ -23,7 +23,7 @@ using TMPro;
 /// - movingObstacles / tilemapMovingObstacles: movers whose CURRENT cells A* treats as blocked.
 /// - showExploredNodes: a heat map of every explored cell with its F, G and H costs.
 ///
-/// Hotkeys (turn off with enableHotkeys):  P start   H heuristic   E labels   R replan mode
+/// Hotkeys (turn off with enableHotkeys):  P start   H heuristic   E labels   R replan mode   Z study zoom
 /// </summary>
 public class AStarDemoController : MonoBehaviour
 {
@@ -69,12 +69,28 @@ public class AStarDemoController : MonoBehaviour
     [SerializeField] private float pathLineWidth = 0.08f;
     [Tooltip("The path line is never thinner than this many screen pixels (thin lines can vanish).")]
     [SerializeField] private float minLinePixels = 3f;
-    [SerializeField] private float nodeTextSize = 3f;
+    [Tooltip("Size of the F / G / H numbers inside each explored cell (1 = default). " +
+             "They are only readable when the camera is close - press Z for the study zoom.")]
+    [SerializeField] private float nodeLabelScale = 1f;
+    [Tooltip("Stop writing numbers into cells after this many (the heat map still draws every cell). " +
+             "Each labelled cell is a separate text object, so very large searches get slow.")]
+    [SerializeField] private int maxLabelledCells = 250;
+    [Tooltip("The numbers are hidden while a cell is smaller than this many screen pixels, because " +
+             "smaller than that they just smear together. Zoom in (Z) to see them.")]
+    [SerializeField] private float labelMinCellPixels = 28f;
+    [Tooltip("Also write the F cost (G + H) as a third line in each cell. Off by default so the " +
+             "G and H numbers can be bigger. F is still shown by the heat colour and the panel.")]
+    [SerializeField] private bool showFCost = false;
+    [Tooltip("Study zoom (Z): the cell size, in screen pixels, it aims for. It zooms out only as " +
+             "far as needed to fit the route, and never below 40 pixels per cell.")]
+    [SerializeField] private float studyCellPixels = 56f;
     [Tooltip("Sorting order of the heat map. Labels draw above it, the path line above that.")]
     [SerializeField] private int visualSortingOrder = 3;
     [SerializeField] private TMP_Text debugText;
     [Tooltip("Font size of the info panel. 0 keeps the size set on the text object.")]
-    [SerializeField] private float panelFontSize = 18f;
+    [SerializeField] private float panelFontSize = 14f;
+    [Tooltip("Draws a thin black outline around the panel text so it is readable on any background.")]
+    [SerializeField] private bool improveTextContrast = true;
 
     private GridMover gridMover;
     private TilemapGridMover tilemapMover;
@@ -82,6 +98,20 @@ public class AStarDemoController : MonoBehaviour
     private bool isFollowingPath;
     private DemoStatus status = DemoStatus.Ready;
     private string stuckMessage;   // set when the mover keeps refusing moves
+
+    // Study zoom (camera moved in on the explored area)
+    private bool studyZoomOn;
+    private Vector3 savedCameraPosition;
+    private float savedCameraSize;
+
+    // Font size (TextMeshPro units) at which a 3-line F / G / H label fits inside one
+    // 1-unit cell without touching its neighbours. Use Node Label Scale to adjust.
+    private const float LabelFontTwoLines = 3.1f;     // G and H only
+    private const float LabelFontThreeLines = 2.3f;   // F, G and H
+
+    private readonly List<GameObject> labelObjects = new List<GameObject>();
+    private bool labelsVisible;
+    private float nextLabelCheck;
 
     // Snapshot of the ORIGINAL search started when P is pressed. The agent may replan
     // while walking, but the teaching display keeps this first search so the explored
@@ -100,7 +130,7 @@ public class AStarDemoController : MonoBehaviour
     private Material visualMaterial;
     private Sprite squareSprite;
 
-    private const string MutedHex = "9AA3AD";
+    private const string MutedHex = "D3D9DF";
     private const string GoodHex = "5CD65C";
     private const string WarnHex = "F2C94C";
     private const string BadHex = "FF5A5A";
@@ -128,14 +158,36 @@ public class AStarDemoController : MonoBehaviour
 
         if (debugText != null)
         {
-            debugText.richText = true;
-            if (panelFontSize > 0f) debugText.fontSize = panelFontSize;
+            StylePanelText(debugText);
         }
     }
 
     private void Start()
     {
         RefreshPanel();
+    }
+
+#pragma warning disable 0618   // enableWordWrapping is obsolete in newer TextMeshPro but still works
+    // One line per row (no wrapping), outlined so it is readable on any background.
+    private void StylePanelText(TMP_Text text)
+    {
+        text.richText = true;
+        text.enableWordWrapping = false;
+        text.raycastTarget = false;
+
+        if (panelFontSize > 0f) text.fontSize = panelFontSize;
+
+        if (improveTextContrast)
+        {
+            text.outlineWidth = 0.22f;
+            text.outlineColor = new Color32(0, 0, 0, 255);
+        }
+    }
+#pragma warning restore 0618
+
+    private void OnDisable()
+    {
+        if (studyZoomOn) ToggleStudyZoom();
     }
 
     private void OnDestroy()
@@ -279,6 +331,8 @@ public class AStarDemoController : MonoBehaviour
 
     private void Update()
     {
+        UpdateLabelVisibility();
+
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null) return;
 
@@ -296,11 +350,89 @@ public class AStarDemoController : MonoBehaviour
             RefreshPanel();
         }
 
+        if (keyboard.zKey.wasPressedThisFrame) ToggleStudyZoom();
+
         if (keyboard.rKey.wasPressedThisFrame)
         {
             replanMode = (ReplanMode)(((int)replanMode + 1) % System.Enum.GetValues(typeof(ReplanMode)).Length);
             RefreshPanel();
         }
+    }
+
+    // Study zoom: moves the camera in on the explored cells so the F / G / H numbers
+    // are big enough to read. Press Z again to put the camera back exactly as it was.
+    // (If another script moves the camera every frame it will fight this.)
+    private void ToggleStudyZoom()
+    {
+        Camera cam = Camera.main;
+        if (cam == null || !cam.orthographic) return;
+
+        if (studyZoomOn)
+        {
+            cam.transform.position = savedCameraPosition;
+            cam.orthographicSize = savedCameraSize;
+            studyZoomOn = false;
+            RefreshPanel();
+            return;
+        }
+
+        if (initialSearchResult == null || initialSearchResult.ExploredNodes.Count == 0)
+            return;
+
+        // Frame the ROUTE (start to goal) when there is one. Fitting every explored cell would
+        // zoom out too far for the numbers to be readable.
+        Vector3 min = new Vector3(float.MaxValue, float.MaxValue, 0f);
+        Vector3 max = new Vector3(float.MinValue, float.MinValue, 0f);
+
+        if (initialSearchResult.PathFound && initialSearchResult.Path.Count > 0)
+        {
+            Vector3 startWorld = CellToWorld(demoStart);
+            min = Vector3.Min(min, startWorld);
+            max = Vector3.Max(max, startWorld);
+
+            foreach (Vector2Int pathCell in initialSearchResult.Path)
+            {
+                Vector3 world = CellToWorld(pathCell);
+                min = Vector3.Min(min, world);
+                max = Vector3.Max(max, world);
+            }
+        }
+        else
+        {
+            foreach (AStarPathfinder.NodeDebugInfo node in initialSearchResult.ExploredNodes)
+            {
+                Vector3 world = CellToWorld(node.Position);
+                min = Vector3.Min(min, world);
+                max = Vector3.Max(max, world);
+            }
+        }
+
+        float cell = CellSize(demoStart);
+
+        savedCameraPosition = cam.transform.position;
+        savedCameraSize = cam.orthographicSize;
+
+        // Centre on the explored area and fit it in view, with one cell of margin.
+        Vector3 centre = (min + max) * 0.5f;
+        centre.z = cam.transform.position.z;
+
+        float halfHeight = (max.y - min.y) * 0.5f + cell * 1.5f;
+        float halfWidth = (max.x - min.x) * 0.5f + cell * 1.5f;
+        float fit = Mathf.Max(halfHeight, halfWidth / Mathf.Max(0.1f, cam.aspect));
+
+        // Camera size that gives a cell of N screen pixels: size = cell x screenHeight / (2 x N).
+        float screenHeight = Mathf.Max(1, cam.pixelHeight);
+        float closest = cell * screenHeight / (2f * Mathf.Max(20f, studyCellPixels));   // biggest cells we aim for
+        float farthest = cell * screenHeight / (2f * 40f);                              // never below 40 px per cell
+
+        // Fit the route, but keep the cells between those two limits and never zoom OUT.
+        float size = Mathf.Clamp(fit, closest, farthest);
+
+        cam.transform.position = centre;
+        cam.orthographicSize = Mathf.Min(savedCameraSize, size);
+
+        studyZoomOn = true;
+        RefreshPanel();
     }
 
     private void CycleHeuristic()
@@ -585,32 +717,39 @@ public class AStarDemoController : MonoBehaviour
           .Append(StatusLabel()).Append("</color></b></size></nobr>\n");
 
         AppendRow(sb, "Heuristic", heuristic.ToString());
-        AppendRow(sb, "Replanning", ReplanLabel());
+        AppendRow(sb, "Replan", ReplanLabel());
 
         if (initialSearchResult != null)
         {
-            AppendRow(sb, "Route", $"{demoStart}  to  {demoGoal}");
+            AppendRow(sb, "Route", $"{demoStart} to {demoGoal}");
 
             if (initialSearchResult.PathFound)
             {
-                AppendRow(sb, "Path length", initialSearchResult.Path.Count.ToString());
-                AppendRow(sb, "Nodes explored", initialSearchResult.ExploredNodes.Count.ToString());
-
                 float g = GetGoalGCost(initialSearchResult);
                 float h = GetGoalHCost(initialSearchResult);
-                AppendRow(sb, "Goal cost",
+
+                AppendRow(sb, "Path",
+                    $"{initialSearchResult.Path.Count} steps  |  {initialSearchResult.ExploredNodes.Count} cells explored");
+                AppendRow(sb, "Cost",
                     $"<color=#8FD694>G {g:0.#}</color>  <color=#F2C94C>H {h:0.#}</color>  F {g + h:0.#}");
             }
             else
             {
-                AppendRow(sb, "Nodes explored", initialSearchResult.ExploredNodes.Count.ToString());
+                AppendRow(sb, "Path", $"none  |  {initialSearchResult.ExploredNodes.Count} cells explored");
             }
 
-            AppendRow(sb, "Compute time", $"{lastComputeMs:0.000} ms");
-            AppendRow(sb, "Searches run", replanCount.ToString());
+            AppendRow(sb, "Time", $"{lastComputeMs:0.000} ms  |  {replanCount} search(es)");
         }
 
-        AppendRow(sb, "Moving obstacles", GetMovingObstacleCells().Count.ToString());
+        AppendRow(sb, "Obstacles", GetMovingObstacleCells().Count.ToString());
+
+        if (initialSearchResult != null && showExploredNodes && labelObjects.Count > 0 && !labelsVisible)
+        {
+            sb.Append("<nobr><size=85%><color=#").Append(WarnHex)
+              .Append(studyZoomOn
+                  ? ">Cells still too small for numbers: enlarge the Game view</color></size></nobr>\n"
+                  : ">F / G / H numbers hidden: press Z to zoom in</color></size></nobr>\n");
+        }
 
         // Plain-English reasons, so a stuck demo explains itself.
         if (status == DemoStatus.NoPath &&
@@ -633,23 +772,20 @@ public class AStarDemoController : MonoBehaviour
               .Append(">Stuck: ").Append(stuckMessage).Append("</color></size></nobr>\n");
         }
 
-        // Legend
+        // Legend (one line): markers, then the heat scale.
         sb.Append("<nobr><size=80%>")
-          .Append(Swatch("33CC66", "start")).Append("   ")
-          .Append(Swatch("FF4D4D", "goal")).Append("   ")
-          .Append(Swatch(AccentHex, "path"))
-          .Append("</size></nobr>\n");
-
-        sb.Append("<nobr><size=80%><color=#").Append(MutedHex).Append(">heat: </color>")
-          .Append(Swatch("5CD65C", "low F")).Append("  ")
-          .Append(Swatch(WarnHex, "mid")).Append("  ")
+          .Append(Swatch("33CC66", "start")).Append("  ")
+          .Append(Swatch("FF4D4D", "goal")).Append("  ")
+          .Append(Swatch(AccentHex, "path")).Append("   ")
+          .Append(Swatch("5CD65C", "low F")).Append(" ")
+          .Append(Swatch(WarnHex, "mid")).Append(" ")
           .Append(Swatch(BadHex, "high F"))
           .Append("</size></nobr>\n");
 
         if (enableHotkeys)
         {
             sb.Append("<nobr><size=75%><color=#").Append(MutedHex)
-              .Append(">P start    H heuristic    E labels    R replan</color></size></nobr>");
+              .Append(">P start   H heuristic   E labels   R replan   Z zoom</color></size></nobr>");
         }
 
         debugText.text = sb.ToString();
@@ -713,6 +849,33 @@ public class AStarDemoController : MonoBehaviour
     {
         if (visualRoot != null) Destroy(visualRoot);
         visualRoot = null;
+        labelObjects.Clear();
+    }
+
+    // How many screen pixels wide one grid cell currently is.
+    private float CellPixelSize()
+    {
+        Camera cam = Camera.main;
+        if (cam == null || !cam.orthographic) return 9999f;
+
+        return CellSize(demoStart) * cam.pixelHeight / (2f * cam.orthographicSize);
+    }
+
+    // Shows the F / G / H numbers only when cells are big enough to read them.
+    private void UpdateLabelVisibility()
+    {
+        if (labelObjects.Count == 0 || Time.unscaledTime < nextLabelCheck) return;
+        nextLabelCheck = Time.unscaledTime + 0.2f;
+
+        bool show = showExploredNodes && CellPixelSize() >= labelMinCellPixels;
+        if (show == labelsVisible) return;
+
+        labelsVisible = show;
+
+        foreach (GameObject label in labelObjects)
+            if (label != null) label.SetActive(show);
+
+        RefreshPanel();
     }
 
     private void AddSquare(Vector2Int cell, Color colour, float size, int order)
@@ -773,11 +936,19 @@ public class AStarDemoController : MonoBehaviour
 
             float range = Mathf.Max(0.0001f, maxF - minF);
 
+            int labelled = 0;
+            labelsVisible = CellPixelSize() >= labelMinCellPixels;
+
             foreach (AStarPathfinder.NodeDebugInfo node in initialSearchResult.ExploredNodes)
             {
                 float t = (node.FCost - minF) / range;
                 AddSquare(node.Position, HeatColour(t), size, visualSortingOrder);
-                CreateNodeLabel(node, cell);
+
+                if (labelled < maxLabelledCells)
+                {
+                    CreateNodeLabel(node, cell);
+                    labelled++;
+                }
             }
         }
 
@@ -803,12 +974,33 @@ public class AStarDemoController : MonoBehaviour
 
         TextMeshPro label = labelObject.AddComponent<TextMeshPro>();
         label.richText = true;
-        label.text =
-            $"<b>{node.FCost:0.#}</b>\n" +
-            $"<size=62%><color=#8FD694>G{node.GCost:0.#}</color> <color=#F2C94C>H{node.HCost:0.#}</color></size>";
-        label.fontSize = nodeTextSize * cellSize;
+
+        // G (green) and H (yellow) on their own lines. F (white) is an optional third line:
+        // with only two lines the text can be about 40% bigger, which is what makes it readable.
+        string text =
+            $"<color=#8FE39A><b>G{node.GCost:0.#}</b></color>\n" +
+            $"<color=#FFD84D><b>H{node.HCost:0.#}</b></color>";
+
+        if (showFCost)
+            text = $"<b>F{node.FCost:0.#}</b>\n" + text;
+
+        label.text = text;
+
+        float baseSize = showFCost ? LabelFontThreeLines : LabelFontTwoLines;
+        label.fontSize = baseSize * Mathf.Max(0.1f, nodeLabelScale) * cellSize;
         label.alignment = TextAlignmentOptions.Center;
         label.sortingOrder = 20;
+        label.raycastTarget = false;
+
+        labelObjects.Add(labelObject);
+        labelObject.SetActive(labelsVisible);
+
+        if (improveTextContrast)
+        {
+            // A thin dark outline keeps the numbers readable on the orange floor.
+            label.outlineWidth = 0.2f;
+            label.outlineColor = new Color32(0, 0, 0, 255);
+        }
     }
 
     private void SetupLineRenderer()
